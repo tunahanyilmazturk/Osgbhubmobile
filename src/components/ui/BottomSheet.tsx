@@ -1,7 +1,8 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Animated, Easing, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useLayout } from '@/lib/responsive';
 import { colors, font, radius, spacing } from '@/theme';
 
 type Props = {
@@ -15,7 +16,9 @@ type Props = {
 /** Alttan açılan, karartılmış arka planlı sayfa */
 export function BottomSheet({ visible, onClose, title, subtitle, children }: Props) {
   const insets = useSafeAreaInsets();
-  const y = useRef(new Animated.Value(0)).current;
+  // Bilgisayarda alttan açılan panel yerine ortada pencere
+  const { isDesktop } = useLayout();
+  const y = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     if (visible) {
@@ -34,15 +37,20 @@ export function BottomSheet({ visible, onClose, title, subtitle, children }: Pro
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: y }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Kapat" />
       </Animated.View>
-      <View style={styles.anchor} pointerEvents="box-none">
+      <View style={[styles.anchor, isDesktop && styles.anchorCenter]} pointerEvents="box-none">
         <Animated.View
           style={[
             styles.sheet,
             { paddingBottom: insets.bottom + spacing.xl },
-            { transform: [{ translateY: y.interpolate({ inputRange: [0, 1], outputRange: [500, 0] }) }] },
+            isDesktop && styles.dialog,
+            {
+              transform: [
+                { translateY: y.interpolate({ inputRange: [0, 1], outputRange: [isDesktop ? 24 : 500, 0] }) },
+              ],
+            },
           ]}
         >
-          <View style={styles.handle} />
+          {!isDesktop && <View style={styles.handle} />}
           {title && (
             <View style={{ gap: 4, marginBottom: spacing.lg }}>
               <Text style={styles.title}>{title}</Text>
@@ -59,6 +67,14 @@ export function BottomSheet({ visible, onClose, title, subtitle, children }: Pro
 const styles = StyleSheet.create({
   backdrop: { backgroundColor: 'rgba(0,0,0,0.65)' },
   anchor: { flex: 1, justifyContent: 'flex-end' },
+  anchorCenter: { justifyContent: 'center', padding: spacing.xxl },
+  dialog: {
+    maxWidth: 520,
+    borderRadius: radius.xl + 4,
+    borderBottomWidth: 1,
+    paddingTop: spacing.xl,
+    paddingBottom: spacing.xl,
+  },
   sheet: {
     width: '100%',
     maxWidth: 560,

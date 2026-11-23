@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRef } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
@@ -21,7 +21,7 @@ type Props = Omit<PressableProps, 'children'> & {
 };
 
 export function Button({ title, variant = 'primary', loading, icon, disabled, ...rest }: Props) {
-  const scale = useRef(new Animated.Value(1)).current;
+  const scale = useState(() => new Animated.Value(1))[0];
   const animate = (to: number) =>
     Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
 

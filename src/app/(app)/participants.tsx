@@ -2,7 +2,17 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
-import { Avatar, Chips, EmptyState, Pill, Row, ScreenHeader, SearchBar, useBottomPadding } from '@/components/ui/kit';
+import {
+  Avatar,
+  Chips,
+  EmptyState,
+  Pill,
+  Row,
+  ScreenHeader,
+  SearchBar,
+  useBottomPadding,
+  useListLayout,
+} from '@/components/ui/kit';
 import { certHealth, latestCertificates, useAppState } from '@/data/store';
 import { normalize } from '@/lib/format';
 import { colors, spacing } from '@/theme';
@@ -13,6 +23,7 @@ export default function Participants() {
   const [q, setQ] = useState('');
   const [firmId, setFirmId] = useState(params.firmId ?? 'all');
   const bottom = useBottomPadding();
+  const list = useListLayout(spacing.sm);
 
   const rows = useMemo(() => {
     const latest = latestCertificates(s.certificates);
@@ -38,21 +49,30 @@ export default function Participants() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScreenHeader title="Katılımcılar" subtitle={`${s.participants.length} firma personeli`} />
       <FlatList
+        key={list.key}
+        numColumns={list.numColumns}
+        columnWrapperStyle={list.columnWrapperStyle}
         data={filtered}
         keyExtractor={(r) => r.p.id}
         renderItem={({ item }) => (
-          <Row
-            onPress={() => router.push(`/participant/${item.p.id}`)}
-            left={<Avatar name={item.p.name} />}
-            title={item.p.name}
-            subtitle={`${item.p.title} · ${item.firm}`}
-            meta={
-              <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
-                <Pill label={`${item.valid} geçerli`} tone={item.valid ? 'success' : 'neutral'} icon="ribbon" />
-                {item.expired > 0 && <Pill label={`${item.expired} süresi dolmuş`} tone="danger" />}
-              </View>
-            }
-          />
+          <View style={list.itemStyle}>
+            <Row
+              onPress={() => router.push(`/participant/${item.p.id}`)}
+              left={<Avatar name={item.p.name} />}
+              title={item.p.name}
+              subtitle={`${item.p.title} · ${item.firm}`}
+              meta={
+                <View style={{ flexDirection: 'row', gap: 6, marginTop: 4 }}>
+                  <Pill
+                    label={`${item.valid} geçerli`}
+                    tone={item.valid ? 'success' : 'neutral'}
+                    icon="ribbon"
+                  />
+                  {item.expired > 0 && <Pill label={`${item.expired} süresi dolmuş`} tone="danger" />}
+                </View>
+              }
+            />
+          </View>
         )}
         ListHeaderComponent={
           <View style={{ gap: spacing.md, marginBottom: spacing.xs }}>
@@ -73,14 +93,7 @@ export default function Participants() {
           </View>
         }
         ListEmptyComponent={<EmptyState icon="people" title="Kişi bulunamadı" />}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.xl,
-          paddingBottom: bottom,
-          gap: spacing.sm,
-          width: '100%',
-          maxWidth: 640,
-          alignSelf: 'center',
-        }}
+        contentContainerStyle={[list.contentContainerStyle, { paddingBottom: bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       />

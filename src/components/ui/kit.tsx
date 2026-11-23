@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { initials } from '@/lib/format';
+import { useLayout } from '@/lib/responsive';
 import { colors, font, radius, spacing } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
@@ -25,6 +26,17 @@ export const TONES: Record<Tone, { fg: string; bg: string; border: string }> = {
   danger: { fg: colors.danger, bg: colors.dangerSoft, border: 'rgba(255,90,95,0.3)' },
   neutral: { fg: colors.textMuted, bg: colors.surfaceHigh, border: colors.border },
 };
+
+/* ---------------- Ekran genişliği ---------------- */
+
+/** Screen'in seçtiği en fazla içerik genişliği; başlık aynı hizayı kullanır */
+const WidthContext = createContext<number | null>(null);
+
+/** Sayfa genişliği: 'narrow' detay/form sayfaları, 'wide' listeler ve panel */
+export function usePageWidth(width: 'narrow' | 'wide' = 'wide') {
+  const { contentMaxWidth, isDesktop } = useLayout();
+  return width === 'narrow' && isDesktop ? 880 : contentMaxWidth;
+}
 
 /* ---------------- Ekran başlığı ---------------- */
 
@@ -43,9 +55,17 @@ type HeaderProps = {
 
 export function ScreenHeader({ title, subtitle, back = true, right, large }: HeaderProps) {
   const insets = useSafeAreaInsets();
+  const { isDesktop, contentMaxWidth } = useLayout();
+  const maxWidth = useContext(WidthContext) ?? contentMaxWidth;
   return (
-    <View style={[s.header, { paddingTop: insets.top + spacing.md }]}>
-      <View style={s.headerRow}>
+    <View
+      style={[
+        s.header,
+        { paddingTop: insets.top + (isDesktop ? spacing.xxl : spacing.md) },
+        isDesktop && { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.lg },
+      ]}
+    >
+      <View style={[s.headerRow, { maxWidth }]}>
         {back && (
           <Pressable
             onPress={goBack}
@@ -103,30 +123,88 @@ export function Screen({
   children,
   tabBar,
   contentStyle,
+  width = 'narrow',
 }: {
   header: ReactNode;
   children: ReactNode;
+  /** Altta sekme çubuğu ya da sabit işlem çubuğu varsa ekstra boşluk */
   tabBar?: boolean;
   contentStyle?: StyleProp<ViewStyle>;
+  width?: 'narrow' | 'wide';
 }) {
   const bottom = useBottomPadding(tabBar);
+  const maxWidth = usePageWidth(width);
+  const { isDesktop } = useLayout();
   return (
-    <View style={s.screen}>
-      {header}
-      <ScrollView
-        contentContainerStyle={[s.screenContent, { paddingBottom: bottom }, contentStyle]}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={s.inner}>{children}</View>
-      </ScrollView>
-    </View>
+    <WidthContext.Provider value={maxWidth}>
+      <View style={s.screen}>
+        {header}
+        <ScrollView
+          contentContainerStyle={[
+            s.screenContent,
+            isDesktop && { paddingHorizontal: spacing.xxxl },
+            { paddingBottom: bottom },
+            contentStyle,
+          ]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={[s.inner, { maxWidth }]}>{children}</View>
+        </ScrollView>
+      </View>
+    </WidthContext.Provider>
   );
 }
 
 export function useBottomPadding(tabBar?: boolean) {
   const insets = useSafeAreaInsets();
-  return insets.bottom + (tabBar ? 120 : spacing.xxxl);
+  const { isDesktop } = useLayout();
+  // Bilgisayarda sekme çubuğu yok; yalnızca sabit işlem çubuğu için yer bırak
+  if (tabBar) return insets.bottom + (isDesktop ? 100 : 120);
+  return insets.bottom + spacing.xxxl;
+}
+
+/** FlatList'i ekran genişliğine göre çok sütunlu yapar */
+export function useListLayout(gap: number = spacing.md) {
+  const { columns, isDesktop } = useLayout();
+  const maxWidth = usePageWidth('wide');
+  return {
+    key: `cols-${columns}`,
+    numColumns: columns,
+    columnWrapperStyle: columns > 1 ? { gap } : undefined,
+    contentContainerStyle: {
+      paddingHorizontal: isDesktop ? spacing.xxxl : spacing.xl,
+      gap,
+      width: '100%' as const,
+      maxWidth: maxWidth + (isDesktop ? spacing.xxxl * 2 : spacing.xl * 2),
+      alignSelf: 'center' as const,
+    },
+    /** Çok sütunda her öğe eşit genişlik alsın */
+    itemStyle: columns > 1 ? { flex: 1 / columns, maxWidth: `${100 / columns}%` as const } : undefined,
+  };
+}
+
+/** Bilgisayarda yan yana, telefonda alt alta sütunlar */
+export function Columns({
+  children,
+  gap = spacing.xl,
+  breakpoint = 'desktop',
+  style,
+}: {
+  children: ReactNode;
+  gap?: number;
+  breakpoint?: 'wide' | 'desktop';
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { isDesktop, isWide } = useLayout();
+  const row = breakpoint === 'wide' ? isWide : isDesktop;
+  return <View style={[{ flexDirection: row ? 'row' : 'column', gap, alignItems: row ? 'flex-start' : 'stretch' }, style]}>{children}</View>;
+}
+
+/** Columns içinde bir sütun */
+export function Column({ children, flex = 1, gap = spacing.lg }: { children: ReactNode; flex?: number; gap?: number }) {
+  const { isDesktop } = useLayout();
+  return <View style={[{ gap, minWidth: 0 }, isDesktop ? { flex } : { width: '100%' }]}>{children}</View>;
 }
 
 /* ---------------- Arama ---------------- */
@@ -277,10 +355,16 @@ export function Card({
   onPress?: () => void;
   highlight?: boolean;
 }) {
+  const [hover, setHover] = useState(false);
   const base = [s.card, highlight && s.cardHighlight, style];
   if (!onPress) return <View style={base}>{children}</View>;
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [...base, pressed && { opacity: 0.8 }]}>
+    <Pressable
+      onPress={onPress}
+      onHoverIn={() => setHover(true)}
+      onHoverOut={() => setHover(false)}
+      style={({ pressed }) => [...base, hover && s.cardHover, pressed && { opacity: 0.8 }]}
+    >
       {children}
     </Pressable>
   );
@@ -430,7 +514,7 @@ export function MiniStat({ value, label, tone }: { value: string; label: string;
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   screenContent: { paddingHorizontal: spacing.xl, paddingTop: spacing.sm },
-  inner: { width: '100%', maxWidth: 600, alignSelf: 'center', gap: spacing.lg },
+  inner: { width: '100%', alignSelf: 'center', gap: spacing.lg },
 
   header: { paddingHorizontal: spacing.xl, paddingBottom: spacing.md, backgroundColor: colors.bg },
   headerRow: {
@@ -438,7 +522,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
     width: '100%',
-    maxWidth: 600,
     alignSelf: 'center',
   },
   headerBtn: {
@@ -520,6 +603,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  cardHover: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
   cardHighlight: { borderColor: 'rgba(255,176,32,0.45)', backgroundColor: '#17140D' },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   rowTitle: { color: colors.text, fontSize: 15, fontWeight: font.semibold },

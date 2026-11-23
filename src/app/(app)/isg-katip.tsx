@@ -130,7 +130,7 @@ export default function IsgKatip() {
       <View style={styles.note}>
         <Ionicons name="information-circle-outline" size={16} color={colors.textDim} />
         <Text style={[styles.dim, { flex: 1, lineHeight: 18 }]}>
-          Demo modu: senkronizasyon simüle edilir. Canlı bağlantı için OSGB'nin İSG-KATİP web servis yetkisi ve
+          Demo modu: senkronizasyon simüle edilir. Canlı bağlantı için OSGB’nin İSG-KATİP web servis yetkisi ve
           sunucu tarafı entegrasyon gerekir.
         </Text>
       </View>

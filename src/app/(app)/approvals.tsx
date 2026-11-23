@@ -138,7 +138,7 @@ export default function Approvals() {
 
       {selected.size > 0 && (
         <View style={[styles.bar, { paddingBottom: insets.bottom + spacing.md }]}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, maxWidth: 560 }}>
             <Button title={`${selected.size} sertifikayı onayla`} icon="checkmark-done" onPress={approve} />
           </View>
         </View>
@@ -208,6 +208,7 @@ const styles = StyleSheet.create({
   },
   bar: {
     position: 'absolute',
+    justifyContent: 'center',
     left: 0,
     right: 0,
     bottom: 0,

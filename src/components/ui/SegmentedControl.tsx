@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, font, radius } from '@/theme';
@@ -22,7 +22,7 @@ export function SegmentedControl<T extends string>({ segments, value, onChange }
   const [width, setWidth] = useState(0);
   const index = Math.max(0, segments.findIndex((s) => s.value === value));
   const segWidth = width > 0 ? (width - PAD * 2) / segments.length : 0;
-  const x = useRef(new Animated.Value(0)).current;
+  const x = useState(() => new Animated.Value(0))[0];
 
   useEffect(() => {
     Animated.spring(x, {

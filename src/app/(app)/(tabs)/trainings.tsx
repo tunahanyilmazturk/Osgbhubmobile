@@ -13,6 +13,7 @@ import {
   Row,
   ScreenHeader,
   useBottomPadding,
+  useListLayout,
   type IconName,
 } from '@/components/ui/kit';
 import { useAppState } from '@/data/store';
@@ -68,14 +69,8 @@ export default function Trainings() {
     </View>
   );
 
-  const listStyle = {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: bottom,
-    gap: spacing.md,
-    width: '100%' as const,
-    maxWidth: 640,
-    alignSelf: 'center' as const,
-  };
+  const list = useListLayout();
+  const listStyle = [list.contentContainerStyle, { paddingBottom: bottom }];
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -84,37 +79,64 @@ export default function Trainings() {
         subtitle={`${s.trainings.length} eğitim · ${s.assignments.length} atama`}
         back={false}
         large
-        right={<IconButton icon="add" tone="amber" label="Eğitim ata" onPress={() => router.push('/assignment/new')} />}
+        right={
+          <IconButton
+            icon="add"
+            tone="amber"
+            label="Eğitim ata"
+            onPress={() => router.push('/assignment/new')}
+          />
+        }
       />
       {tab === 'assignments' ? (
         <FlatList
+          key={list.key}
+          numColumns={list.numColumns}
+          columnWrapperStyle={list.columnWrapperStyle}
           data={filtered}
           keyExtractor={(a) => a.id}
-          renderItem={({ item }) => <AssignmentRow a={item} />}
+          renderItem={({ item }) => (
+            <View style={list.itemStyle}>
+              <AssignmentRow a={item} />
+            </View>
+          )}
           ListHeaderComponent={header}
-          ListEmptyComponent={<EmptyState icon="calendar" title="Atama yok" text="Yeni eğitim atamak için + butonunu kullanın." />}
+          ListEmptyComponent={
+            <EmptyState
+              icon="calendar"
+              title="Atama yok"
+              text="Yeni eğitim atamak için + butonunu kullanın."
+            />
+          }
           contentContainerStyle={listStyle}
           showsVerticalScrollIndicator={false}
         />
       ) : (
         <FlatList
+          key={list.key}
+          numColumns={list.numColumns}
+          columnWrapperStyle={list.columnWrapperStyle}
           data={s.trainings}
           keyExtractor={(t) => t.id}
           renderItem={({ item: t }) => {
             const n = s.assignments.filter((a) => a.trainingId === t.id).length;
             return (
-              <Row
-                onPress={() => router.push(`/training/${t.id}`)}
-                left={<IconTile icon={t.icon as IconName} tone="amber" size={44} />}
-                title={t.title}
-                subtitle={`${t.hours} saat · ${t.mode} · ${t.validityMonths / 12} yıl geçerli`}
-                meta={
-                  <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: 4, alignItems: 'center' }}>
-                    <Pill label={t.category} tone={t.category === 'Zorunlu' ? 'amber' : 'neutral'} />
-                    <Text style={{ color: colors.textDim, fontSize: 12 }}>{n} atama</Text>
-                  </View>
-                }
-              />
+              <View style={list.itemStyle}>
+                <Row
+                  onPress={() => router.push(`/training/${t.id}`)}
+                  left={<IconTile icon={t.icon as IconName} tone="amber" size={44} />}
+                  title={t.title}
+                  subtitle={`${t.hours} saat · ${t.mode} · ${t.validityMonths / 12} yıl geçerli`}
+                  meta={
+                    <View
+                      style={{ flexDirection: 'row', gap: spacing.sm, marginTop: 4, alignItems: 'center' }}
+                    >
+                      <Pill label={t.category} tone={t.category === 'Zorunlu' ? 'amber' : 'neutral'} />
+                      <Text style={{ color: colors.textDim, fontSize: 12 }}>{n} atama</Text>
+                    </View>
+                  }
+                />
+              </View>
             );
           }}
           ListHeaderComponent={header}

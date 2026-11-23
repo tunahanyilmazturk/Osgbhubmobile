@@ -210,7 +210,7 @@ export default function ESignature() {
 
       {selected.size > 0 && (
         <View style={[styles.bar, { paddingBottom: insets.bottom + spacing.md }]}>
-          <View style={{ flex: 1 }}>
+          <View style={{ flex: 1, maxWidth: 560 }}>
             <Button title={`${docCount} belgeyi imzala`} icon="finger-print" onPress={openSheet} />
           </View>
         </View>
@@ -337,6 +337,7 @@ const styles = StyleSheet.create({
   history: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   bar: {
     position: 'absolute',
+    justifyContent: 'center',
     left: 0,
     right: 0,
     bottom: 0,

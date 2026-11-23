@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { CertificateRow } from '@/components/domain';
-import { Chips, EmptyState, ScreenHeader, SearchBar, useBottomPadding } from '@/components/ui/kit';
+import { Chips, EmptyState, ScreenHeader, SearchBar, useBottomPadding, useListLayout } from '@/components/ui/kit';
 import { certHealth, latestCertificates, useAppState, useLookups, type CertHealth } from '@/data/store';
 import { normalize } from '@/lib/format';
 import { colors, spacing } from '@/theme';
@@ -17,6 +17,7 @@ export default function Certificates() {
   const [filter, setFilter] = useState<Filter>(params.filter ?? 'all');
   const [q, setQ] = useState('');
   const bottom = useBottomPadding();
+  const list = useListLayout(spacing.sm);
 
   const all = useMemo(() => {
     // Süreçtekiler + her kişi/eğitim için son sertifika
@@ -46,9 +47,16 @@ export default function Certificates() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScreenHeader title="Sertifikalar" subtitle="Her personelin her eğitimdeki son sertifikası" />
       <FlatList
+        key={list.key}
+        numColumns={list.numColumns}
+        columnWrapperStyle={list.columnWrapperStyle}
         data={filtered}
         keyExtractor={(x) => x.c.id}
-        renderItem={({ item }) => <CertificateRow cert={item.c} />}
+        renderItem={({ item }) => (
+          <View style={list.itemStyle}>
+            <CertificateRow cert={item.c} />
+          </View>
+        )}
         ListHeaderComponent={
           <View style={{ gap: spacing.md, marginBottom: spacing.xs }}>
             <SearchBar value={q} onChangeText={setQ} placeholder="Kişi, eğitim, firma veya sertifika no" />
@@ -67,14 +75,7 @@ export default function Certificates() {
           </View>
         }
         ListEmptyComponent={<EmptyState icon="ribbon" title="Sertifika bulunamadı" />}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.xl,
-          paddingBottom: bottom,
-          gap: spacing.sm,
-          width: '100%',
-          maxWidth: 640,
-          alignSelf: 'center',
-        }}
+        contentContainerStyle={[list.contentContainerStyle, { paddingBottom: bottom }]}
         initialNumToRender={12}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

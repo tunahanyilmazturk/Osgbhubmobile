@@ -7,6 +7,8 @@ import { AssignmentRow, HazardPill, KATIP_STATUS } from '@/components/domain';
 import {
   Avatar,
   Card,
+  Column,
+  Columns,
   EmptyState,
   IconButton,
   InfoRow,
@@ -67,6 +69,7 @@ export default function FirmDetail() {
 
   return (
     <Screen
+      width="wide"
       header={
         <ScreenHeader
           title={firm.name}
@@ -82,104 +85,131 @@ export default function FirmDetail() {
         />
       }
     >
-      {/* Özet */}
-      <Card style={{ gap: spacing.lg }}>
-        <View style={styles.pills}>
-          <HazardPill hazard={firm.hazard} />
-          <Pill label={`${firm.employees} çalışan`} icon="people" />
-        </View>
-        <View style={{ flexDirection: 'row' }}>
-          <MiniStat value={`%${data.compliance}`} label="Eğitim uyumu" tone={data.compliance >= 85 ? 'success' : data.compliance >= 65 ? 'amber' : 'danger'} />
-          <MiniStat value={String(data.valid)} label="Geçerli sertifika" />
-          <MiniStat value={String(data.expired)} label="Süresi dolan" tone={data.expired ? 'danger' : undefined} />
-        </View>
-        <ProgressBar
-          value={data.compliance / 100}
-          tone={data.compliance >= 85 ? 'success' : data.compliance >= 65 ? 'amber' : 'danger'}
-          label="Eğitim uyumu"
-        />
-      </Card>
-
-      {/* İSG-KATİP */}
-      <SectionHeader title="İSG-KATİP" action="Senkronizasyon" onAction={() => router.push('/isg-katip')} />
-      <Card style={{ gap: spacing.sm }}>
-        <View style={styles.katipTop}>
-          <Pill label={k.label} tone={k.tone} icon={k.icon} />
-          <Text style={styles.dim}>Son: {formatDateTime(firm.katip.lastSync)}</Text>
-        </View>
-        {firm.katip.message && (
-          <View style={[styles.katipMsg, firm.katip.status === 'error' && styles.katipMsgError]}>
-            <Ionicons
-              name={firm.katip.status === 'error' ? 'warning' : 'information-circle'}
-              size={16}
-              color={firm.katip.status === 'error' ? colors.danger : colors.amber}
-            />
-            <Text style={styles.katipMsgText}>{firm.katip.message}</Text>
-          </View>
-        )}
-        <InfoRow icon="document-text-outline" label="Sözleşme no" value={firm.katip.contractNo} />
-        <InfoRow icon="calendar-outline" label="Sözleşme bitişi" value={`${formatDate(firm.contractEnd)} (${contractDays})`} />
-        <InfoRow icon="id-card-outline" label="SGK sicil" value={firm.sgkNo} />
-      </Card>
-
-      {/* Atanan ekip */}
-      <SectionHeader title="Atanan ekip" />
-      <View style={{ gap: spacing.sm }}>
-        {data.staff.map(({ m, role }) => {
-          if (!m) return null;
-          const minutes = requiredMinutes(role, firm);
-          const mismatch = role === 'specialist' && !classAllowed(m.certClass, firm.hazard);
-          return (
-            <Row
-              key={m.id}
-              onPress={() => router.push('/team')}
-              left={<Avatar name={m.name} />}
-              title={m.name}
-              subtitle={`${ROLE_LABEL[role]}${m.certClass ? ` · ${m.certClass} sınıfı` : ''} · ${formatNumber(minutes)} dk/ay`}
-              meta={mismatch ? <View style={{ marginTop: 4 }}><Pill label="Sınıf uyumsuz" tone="danger" icon="warning" /></View> : undefined}
-            />
-          );
-        })}
-      </View>
-
-      {/* Eğitimler */}
-      <SectionHeader
-        title="Eğitimler"
-        action="Eğitim ata"
-        onAction={() => router.push({ pathname: '/assignment/new', params: { firmId: firm.id } })}
-      />
-      <View style={{ gap: spacing.sm }}>
-        {data.assignments.length ? (
-          data.assignments.map((a) => <AssignmentRow key={a.id} a={a} />)
-        ) : (
-          <Text style={styles.dim}>Bu firmaya henüz eğitim atanmadı.</Text>
-        )}
-      </View>
-
-      {/* Personel */}
-      <SectionHeader
-        title={`Personel (${data.people.length})`}
-        action="Tümü"
-        onAction={() => router.push({ pathname: '/participants', params: { firmId: firm.id } })}
-      />
-      <Card style={{ padding: 0 }}>
-        {data.people.slice(0, 5).map((p, i) => (
-          <Pressable
-            key={p.id}
-            onPress={() => router.push(`/participant/${p.id}`)}
-            style={[styles.person, i > 0 && styles.personBorder]}
-          >
-            <Avatar name={p.name} size={34} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.personName}>{p.name}</Text>
-              <Text style={styles.dim}>
-                {p.title} · {p.department}
-              </Text>
+      <Columns>
+        <Column>
+          {/* Özet */}
+          <Card style={{ gap: spacing.lg }}>
+            <View style={styles.pills}>
+              <HazardPill hazard={firm.hazard} />
+              <Pill label={`${firm.employees} çalışan`} icon="people" />
             </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textDim} />
-          </Pressable>
-        ))}
-      </Card>
+            <View style={{ flexDirection: 'row' }}>
+              <MiniStat
+                value={`%${data.compliance}`}
+                label="Eğitim uyumu"
+                tone={data.compliance >= 85 ? 'success' : data.compliance >= 65 ? 'amber' : 'danger'}
+              />
+              <MiniStat value={String(data.valid)} label="Geçerli sertifika" />
+              <MiniStat
+                value={String(data.expired)}
+                label="Süresi dolan"
+                tone={data.expired ? 'danger' : undefined}
+              />
+            </View>
+            <ProgressBar
+              value={data.compliance / 100}
+              tone={data.compliance >= 85 ? 'success' : data.compliance >= 65 ? 'amber' : 'danger'}
+              label="Eğitim uyumu"
+            />
+          </Card>
+
+          {/* İSG-KATİP */}
+          <SectionHeader
+            title="İSG-KATİP"
+            action="Senkronizasyon"
+            onAction={() => router.push('/isg-katip')}
+          />
+          <Card style={{ gap: spacing.sm }}>
+            <View style={styles.katipTop}>
+              <Pill label={k.label} tone={k.tone} icon={k.icon} />
+              <Text style={styles.dim}>Son: {formatDateTime(firm.katip.lastSync)}</Text>
+            </View>
+            {firm.katip.message && (
+              <View style={[styles.katipMsg, firm.katip.status === 'error' && styles.katipMsgError]}>
+                <Ionicons
+                  name={firm.katip.status === 'error' ? 'warning' : 'information-circle'}
+                  size={16}
+                  color={firm.katip.status === 'error' ? colors.danger : colors.amber}
+                />
+                <Text style={styles.katipMsgText}>{firm.katip.message}</Text>
+              </View>
+            )}
+            <InfoRow icon="document-text-outline" label="Sözleşme no" value={firm.katip.contractNo} />
+            <InfoRow
+              icon="calendar-outline"
+              label="Sözleşme bitişi"
+              value={`${formatDate(firm.contractEnd)} (${contractDays})`}
+            />
+            <InfoRow icon="id-card-outline" label="SGK sicil" value={firm.sgkNo} />
+          </Card>
+
+          {/* Atanan ekip */}
+          <SectionHeader title="Atanan ekip" />
+          <View style={{ gap: spacing.sm }}>
+            {data.staff.map(({ m, role }) => {
+              if (!m) return null;
+              const minutes = requiredMinutes(role, firm);
+              const mismatch = role === 'specialist' && !classAllowed(m.certClass, firm.hazard);
+              return (
+                <Row
+                  key={m.id}
+                  onPress={() => router.push('/team')}
+                  left={<Avatar name={m.name} />}
+                  title={m.name}
+                  subtitle={`${ROLE_LABEL[role]}${m.certClass ? ` · ${m.certClass} sınıfı` : ''} · ${formatNumber(minutes)} dk/ay`}
+                  meta={
+                    mismatch ? (
+                      <View style={{ marginTop: 4 }}>
+                        <Pill label="Sınıf uyumsuz" tone="danger" icon="warning" />
+                      </View>
+                    ) : undefined
+                  }
+                />
+              );
+            })}
+          </View>
+        </Column>
+        <Column>
+          {/* Eğitimler */}
+          <SectionHeader
+            title="Eğitimler"
+            action="Eğitim ata"
+            onAction={() => router.push({ pathname: '/assignment/new', params: { firmId: firm.id } })}
+          />
+          <View style={{ gap: spacing.sm }}>
+            {data.assignments.length ? (
+              data.assignments.map((a) => <AssignmentRow key={a.id} a={a} />)
+            ) : (
+              <Text style={styles.dim}>Bu firmaya henüz eğitim atanmadı.</Text>
+            )}
+          </View>
+
+          {/* Personel */}
+          <SectionHeader
+            title={`Personel (${data.people.length})`}
+            action="Tümü"
+            onAction={() => router.push({ pathname: '/participants', params: { firmId: firm.id } })}
+          />
+          <Card style={{ padding: 0 }}>
+            {data.people.slice(0, 5).map((p, i) => (
+              <Pressable
+                key={p.id}
+                onPress={() => router.push(`/participant/${p.id}`)}
+                style={[styles.person, i > 0 && styles.personBorder]}
+              >
+                <Avatar name={p.name} size={34} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.personName}>{p.name}</Text>
+                  <Text style={styles.dim}>
+                    {p.title} · {p.department}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textDim} />
+              </Pressable>
+            ))}
+          </Card>
+        </Column>
+      </Columns>
     </Screen>
   );
 }

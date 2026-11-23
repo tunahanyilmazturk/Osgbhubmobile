@@ -1,7 +1,8 @@
 # OSGB Hub — Mobil
 
 İş Sağlığı ve Güvenliği (OSGB) yönetim platformunun mobil uygulaması.
-Tasarım dili: **siyah · amber · beyaz**, mobil öncelikli.
+Tasarım dili: **siyah · amber · beyaz**. Telefon, tablet ve bilgisayarda çalışır:
+telefonda alt sekme çubuğu, bilgisayarda (≥1024px) sol kenar menü ve çok sütunlu yerleşim.
 
 <img src="docs/login.png" width="200" alt="Giriş" /> <img src="docs/dashboard.png" width="200" alt="Panel" /> <img src="docs/certificate.png" width="200" alt="Sertifika" /> <img src="docs/isg-katip.png" width="200" alt="İSG-KATİP" />
 
@@ -35,6 +36,7 @@ npm install
 npx expo start      # QR kodu Expo Go ile okutun
 npm run web         # tarayıcıda çalıştır
 npm run typecheck
+npm run lint
 ```
 
 ## Web yayını (Cloudflare · osgbhub.com)

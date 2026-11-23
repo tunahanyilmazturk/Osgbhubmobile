@@ -19,9 +19,11 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BrandMark } from '@/components/BrandMark';
+import { LoginBrandPanel } from '@/components/LoginBrandPanel';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
+import { useLayout } from '@/lib/responsive';
 import { useSession } from '@/lib/session';
 import { AuthError, signIn, validateLogin, type UserRole } from '@/lib/auth';
 import { colors, font, radius, spacing } from '@/theme';
@@ -39,9 +41,7 @@ const haptic = (type: 'light' | 'success' | 'error') => {
   if (type === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   else
     Haptics.notificationAsync(
-      type === 'success'
-        ? Haptics.NotificationFeedbackType.Success
-        : Haptics.NotificationFeedbackType.Error,
+      type === 'success' ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Error,
     );
 };
 
@@ -52,6 +52,8 @@ export default function LoginScreen() {
   const compact = width < 400;
   // Kısa ekranlarda (eski iPhone'lar, Safari araç çubukları açık) boşlukları daralt
   const short = height < 700;
+  // Bilgisayar: solda marka paneli, sağda form
+  const { isDesktop } = useLayout();
   const passwordRef = useRef<TextInputInstance>(null);
 
   const [role, setRole] = useState<UserRole>('admin');
@@ -64,8 +66,8 @@ export default function LoginScreen() {
   const { setUser } = useSession();
 
   // Giriş animasyonu
-  const enter = useRef(new Animated.Value(0)).current;
-  const glow = useRef(new Animated.Value(0)).current;
+  const enter = useState(() => new Animated.Value(0))[0];
+  const glow = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
     Animated.timing(enter, {
       toValue: 1,
@@ -83,9 +85,7 @@ export default function LoginScreen() {
 
   const rise = (offset: number) => ({
     opacity: enter,
-    transform: [
-      { translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] }) },
-    ],
+    transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] }) }],
   });
 
   const login = async (input: { email: string; password: string; role: UserRole }, mode: 'form' | 'demo') => {
@@ -125,32 +125,35 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      {/* Arka plan ışımaları */}
-      <Animated.View
-        pointerEvents="none"
-        style={[
-          styles.glowTop,
-          { opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0.9] }) },
-        ]}
-      >
-        <LinearGradient
-          colors={[colors.amberGlow, 'rgba(255,176,32,0.06)', 'transparent']}
-          start={{ x: 0.8, y: 0 }}
-          end={{ x: 0.3, y: 1 }}
-          style={StyleSheet.absoluteFill}
-        />
-      </Animated.View>
-      <View pointerEvents="none" style={styles.stripes}>
-        {Array.from({ length: 7 }).map((_, i) => (
-          <View key={i} style={styles.stripe} />
-        ))}
-      </View>
+    <View style={[styles.root, isDesktop && { flexDirection: 'row' }]}>
+      {isDesktop && <LoginBrandPanel />}
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      {/* Arka plan ışımaları (telefon) */}
+      {!isDesktop && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.glowTop,
+            { opacity: glow.interpolate({ inputRange: [0, 1], outputRange: [0.55, 0.9] }) },
+          ]}
+        >
+          <LinearGradient
+            colors={[colors.amberGlow, 'rgba(255,176,32,0.06)', 'transparent']}
+            start={{ x: 0.8, y: 0 }}
+            end={{ x: 0.3, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+      )}
+      {!isDesktop && (
+        <View pointerEvents="none" style={styles.stripes}>
+          {Array.from({ length: 7 }).map((_, i) => (
+            <View key={i} style={styles.stripe} />
+          ))}
+        </View>
+      )}
+
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
@@ -159,118 +162,124 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={[styles.container, short && { gap: spacing.lg }]}>
-            <Animated.View style={rise(-12)}>
-              <BrandMark />
-            </Animated.View>
+          <View
+            style={[
+              styles.container,
+              short && { gap: spacing.lg },
+              isDesktop && { justifyContent: 'center', maxWidth: 420 },
+            ]}
+          >
+            {!isDesktop && (
+              <Animated.View style={rise(-12)}>
+                <BrandMark />
+              </Animated.View>
+            )}
 
             <Animated.View style={[styles.hero, rise(16)]}>
               <Text style={[styles.title, compact && { fontSize: 27, lineHeight: 32 }]}>
                 Tekrar hoş geldiniz<Text style={{ color: colors.amber }}>.</Text>
               </Text>
-              {!short && (
-                <Text style={styles.subtitle}>Firmalar, eğitimler ve sertifikalar tek yerde.</Text>
-              )}
+              {!short && <Text style={styles.subtitle}>Firmalar, eğitimler ve sertifikalar tek yerde.</Text>}
             </Animated.View>
 
             <Animated.View style={[styles.card, short && { gap: spacing.md, padding: spacing.lg }, rise(28)]}>
               <>
-                  <View style={{ gap: spacing.sm }}>
-                    <Text style={styles.sectionLabel}>Giriş türü</Text>
-                    <SegmentedControl
-                      segments={ROLES}
-                      value={role}
-                      onChange={(r) => {
-                        haptic('light');
-                        setRole(r);
-                      }}
-                    />
-                  </View>
-
-                  <TextField
-                    label="E-posta"
-                    icon="mail-outline"
-                    placeholder="ornek@osgb.com.tr"
-                    value={email}
-                    onChangeText={(t) => {
-                      setEmail(t);
-                      if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+                <View style={{ gap: spacing.sm }}>
+                  <Text style={styles.sectionLabel}>Giriş türü</Text>
+                  <SegmentedControl
+                    segments={ROLES}
+                    value={role}
+                    onChange={(r) => {
+                      haptic('light');
+                      setRole(r);
                     }}
-                    error={errors.email}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoComplete="email"
-                    textContentType="emailAddress"
-                    returnKeyType="next"
-                    onSubmitEditing={() => passwordRef.current?.focus()}
-                    submitBehavior="submit"
                   />
+                </View>
 
-                  <TextField
-                    ref={passwordRef}
-                    label="Şifre"
-                    icon="lock-closed-outline"
-                    placeholder="••••••••"
-                    value={password}
-                    onChangeText={(t) => {
-                      setPassword(t);
-                      if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
-                    }}
-                    error={errors.password}
-                    secureTextEntry
-                    secureToggle
-                    autoComplete="password"
-                    textContentType="password"
-                    returnKeyType="go"
-                    onSubmitEditing={onSubmit}
-                  />
+                <TextField
+                  label="E-posta"
+                  icon="mail-outline"
+                  placeholder="ornek@osgb.com.tr"
+                  value={email}
+                  onChangeText={(t) => {
+                    setEmail(t);
+                    if (errors.email) setErrors((e) => ({ ...e, email: undefined }));
+                  }}
+                  error={errors.email}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  textContentType="emailAddress"
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
+                  submitBehavior="submit"
+                />
 
-                  <View style={styles.row}>
-                    <Pressable
-                      style={styles.remember}
-                      onPress={() => setRemember((r) => !r)}
-                      accessibilityRole="checkbox"
-                      accessibilityState={{ checked: remember }}
-                      hitSlop={8}
-                    >
-                      <View style={[styles.checkbox, remember && styles.checkboxOn]}>
-                        {remember && <Ionicons name="checkmark" size={14} color={colors.onAmber} />}
-                      </View>
-                      <Text style={styles.rememberText}>Beni hatırla</Text>
-                    </Pressable>
-                    <Pressable hitSlop={8} accessibilityRole="link">
-                      <Text style={styles.link}>Şifremi unuttum</Text>
-                    </Pressable>
-                  </View>
+                <TextField
+                  ref={passwordRef}
+                  label="Şifre"
+                  icon="lock-closed-outline"
+                  placeholder="••••••••"
+                  value={password}
+                  onChangeText={(t) => {
+                    setPassword(t);
+                    if (errors.password) setErrors((e) => ({ ...e, password: undefined }));
+                  }}
+                  error={errors.password}
+                  secureTextEntry
+                  secureToggle
+                  autoComplete="password"
+                  textContentType="password"
+                  returnKeyType="go"
+                  onSubmitEditing={onSubmit}
+                />
 
-                  {formError && (
-                    <View style={styles.formError}>
-                      <Ionicons name="warning-outline" size={18} color={colors.danger} />
-                      <Text style={styles.formErrorText}>{formError}</Text>
+                <View style={styles.row}>
+                  <Pressable
+                    style={styles.remember}
+                    onPress={() => setRemember((r) => !r)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: remember }}
+                    hitSlop={8}
+                  >
+                    <View style={[styles.checkbox, remember && styles.checkboxOn]}>
+                      {remember && <Ionicons name="checkmark" size={14} color={colors.onAmber} />}
                     </View>
-                  )}
+                    <Text style={styles.rememberText}>Beni hatırla</Text>
+                  </Pressable>
+                  <Pressable hitSlop={8} accessibilityRole="link">
+                    <Text style={styles.link}>Şifremi unuttum</Text>
+                  </Pressable>
+                </View>
 
-                  <View style={{ gap: spacing.md }}>
-                    <Button
-                      title="Giriş yap"
-                      icon="arrow-forward"
-                      loading={loading === 'form'}
-                      disabled={loading === 'demo'}
-                      onPress={onSubmit}
-                    />
-                    <Button
-                      title="Demo hesapla giriş yap"
-                      variant="outline"
-                      icon="flash-outline"
-                      loading={loading === 'demo'}
-                      disabled={loading === 'form'}
-                      onPress={onDemo}
-                    />
+                {formError && (
+                  <View style={styles.formError}>
+                    <Ionicons name="warning-outline" size={18} color={colors.danger} />
+                    <Text style={styles.formErrorText}>{formError}</Text>
                   </View>
+                )}
+
+                <View style={{ gap: spacing.md }}>
+                  <Button
+                    title="Giriş yap"
+                    icon="arrow-forward"
+                    loading={loading === 'form'}
+                    disabled={loading === 'demo'}
+                    onPress={onSubmit}
+                  />
+                  <Button
+                    title="Demo hesapla giriş yap"
+                    variant="outline"
+                    icon="flash-outline"
+                    loading={loading === 'demo'}
+                    disabled={loading === 'form'}
+                    onPress={onDemo}
+                  />
+                </View>
               </>
             </Animated.View>
 
-            <Animated.View style={[styles.footer, rise(36)]}>
+            <Animated.View style={[styles.footer, isDesktop && { marginTop: 0 }, rise(36)]}>
               <View style={styles.secure}>
                 <Ionicons name="lock-closed" size={12} color={colors.textDim} />
                 <Text style={styles.secureText}>256-bit SSL · KVKK uyumlu</Text>

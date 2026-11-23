@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, View } from 'react-native';
 
 import { FirmRow } from '@/components/domain';
-import { Chips, EmptyState, ScreenHeader, SearchBar, useBottomPadding } from '@/components/ui/kit';
+import { Chips, EmptyState, ScreenHeader, SearchBar, useBottomPadding, useListLayout } from '@/components/ui/kit';
 import { firmCompliance, useAppState } from '@/data/store';
 import type { HazardClass } from '@/data/types';
 import { normalize } from '@/lib/format';
@@ -15,6 +15,7 @@ export default function Firms() {
   const [q, setQ] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const bottom = useBottomPadding(true);
+  const list = useListLayout();
 
   const rows = useMemo(
     () => s.firms.map((f) => ({ firm: f, compliance: firmCompliance(s, f.id) })),
@@ -35,17 +36,17 @@ export default function Firms() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <ScreenHeader title="Firmalar" subtitle={`${s.firms.length} aktif sözleşme`} back={false} large />
       <FlatList
+        key={list.key}
+        numColumns={list.numColumns}
+        columnWrapperStyle={list.columnWrapperStyle}
         data={filtered}
         keyExtractor={(r) => r.firm.id}
-        renderItem={({ item }) => <FirmRow firm={item.firm} compliance={item.compliance} />}
-        contentContainerStyle={{
-          paddingHorizontal: spacing.xl,
-          paddingBottom: bottom,
-          gap: spacing.md,
-          width: '100%',
-          maxWidth: 640,
-          alignSelf: 'center',
-        }}
+        renderItem={({ item }) => (
+          <View style={list.itemStyle}>
+            <FirmRow firm={item.firm} compliance={item.compliance} />
+          </View>
+        )}
+        contentContainerStyle={[list.contentContainerStyle, { paddingBottom: bottom }]}
         ListHeaderComponent={
           <View style={{ gap: spacing.md, marginBottom: spacing.xs }}>
             <SearchBar value={q} onChangeText={setQ} placeholder="Firma, sektör veya şehir ara" />

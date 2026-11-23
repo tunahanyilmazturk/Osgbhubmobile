@@ -7,7 +7,18 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BarChart, StatusDistribution } from '@/components/charts';
 import { AssignmentRow, CertificateRow, HazardPill } from '@/components/domain';
-import { Avatar, Card, ProgressBar, SectionHeader, type IconName, type Tone, TONES } from '@/components/ui/kit';
+import {
+  Avatar,
+  Card,
+  Column,
+  Columns,
+  ProgressBar,
+  SectionHeader,
+  TONES,
+  useBottomPadding,
+  type IconName,
+  type Tone,
+} from '@/components/ui/kit';
 import {
   certHealth,
   firmCompliance,
@@ -17,6 +28,7 @@ import {
   useAppState,
 } from '@/data/store';
 import { DAYS_LONG, MONTHS_LONG, daysUntil, monthLabel, parseDate } from '@/lib/format';
+import { useLayout } from '@/lib/responsive';
 import { ROLE_LABELS, displayName, useSession } from '@/lib/session';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -32,6 +44,8 @@ export default function Dashboard() {
   const { user } = useSession();
   const s = useAppState();
   const [refreshing, setRefreshing] = useState(false);
+  const { isDesktop, contentMaxWidth } = useLayout();
+  const bottom = useBottomPadding(true);
 
   const now = new Date();
   const name = user ? displayName(user.name) : '';
@@ -44,9 +58,13 @@ export default function Dashboard() {
     const compliances = s.firms.map((f) => ({ firm: f, value: firmCompliance(s, f.id) }));
     const trainingCoverage = Math.round(compliances.reduce((a, c) => a + c.value, 0) / compliances.length);
     const validRatio = Math.round(
-      ((count('valid') + count('expiring')) / Math.max(1, count('valid') + count('expiring') + count('expired'))) * 100,
+      ((count('valid') + count('expiring')) /
+        Math.max(1, count('valid') + count('expiring') + count('expired'))) *
+        100,
     );
-    const katipOk = Math.round((s.firms.filter((f) => f.katip.status === 'synced').length / s.firms.length) * 100);
+    const katipOk = Math.round(
+      (s.firms.filter((f) => f.katip.status === 'synced').length / s.firms.length) * 100,
+    );
     const overall = Math.round(trainingCoverage * 0.5 + validRatio * 0.3 + katipOk * 0.2);
 
     // Son 6 ayda düzenlenen sertifikalar
@@ -77,9 +95,7 @@ export default function Dashboard() {
       return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     }).length;
 
-    const load = s.team
-      .map((t) => ({ member: t, ...memberLoad(s, t) }))
-      .sort((a, b) => b.ratio - a.ratio);
+    const load = s.team.map((t) => ({ member: t, ...memberLoad(s, t) })).sort((a, b) => b.ratio - a.ratio);
 
     return {
       overall,
@@ -119,16 +135,62 @@ export default function Dashboard() {
   }, []);
 
   const tasks: { label: string; count: number; icon: IconName; tone: Tone; href: Href }[] = [
-    { label: 'Onay bekleyen\nsertifika', count: m.pendingApproval, icon: 'hourglass', tone: 'amber', href: '/approvals' },
-    { label: 'İmza bekleyen\nbelge', count: m.toSign, icon: 'finger-print', tone: 'amber', href: '/e-signature' },
-    { label: 'İSG-KATİP\nsorunu', count: m.katipIssues, icon: 'cloud-offline', tone: m.katipErrors ? 'danger' : 'amber', href: '/isg-katip' },
+    {
+      label: 'Onay bekleyen\nsertifika',
+      count: m.pendingApproval,
+      icon: 'hourglass',
+      tone: 'amber',
+      href: '/approvals',
+    },
+    {
+      label: 'İmza bekleyen\nbelge',
+      count: m.toSign,
+      icon: 'finger-print',
+      tone: 'amber',
+      href: '/e-signature',
+    },
+    {
+      label: 'İSG-KATİP\nsorunu',
+      count: m.katipIssues,
+      icon: 'cloud-offline',
+      tone: m.katipErrors ? 'danger' : 'amber',
+      href: '/isg-katip',
+    },
   ];
 
   const kpis: { label: string; value: string; hint: string; icon: IconName; tone: Tone; href: Href }[] = [
-    { label: 'Aktif firma', value: String(s.firms.length), hint: `${m.employees.toLocaleString('tr-TR')} çalışan`, icon: 'business', tone: 'amber', href: '/firms' },
-    { label: 'Katılımcı', value: String(s.participants.length), hint: 'kayıtlı personel', icon: 'people', tone: 'neutral', href: '/participants' },
-    { label: 'Geçerli sertifika', value: String(m.counts.valid + m.counts.expiring), hint: `${m.counts.expiring} tanesi 30 gün içinde bitiyor`, icon: 'ribbon', tone: 'success', href: '/certificates' },
-    { label: 'Bu ay eğitim', value: String(m.thisMonthTrainings), hint: `${m.upcoming.length} yaklaşan oturum`, icon: 'school', tone: 'neutral', href: '/trainings' },
+    {
+      label: 'Aktif firma',
+      value: String(s.firms.length),
+      hint: `${m.employees.toLocaleString('tr-TR')} çalışan`,
+      icon: 'business',
+      tone: 'amber',
+      href: '/firms',
+    },
+    {
+      label: 'Katılımcı',
+      value: String(s.participants.length),
+      hint: 'kayıtlı personel',
+      icon: 'people',
+      tone: 'neutral',
+      href: '/participants',
+    },
+    {
+      label: 'Geçerli sertifika',
+      value: String(m.counts.valid + m.counts.expiring),
+      hint: `${m.counts.expiring} tanesi 30 gün içinde bitiyor`,
+      icon: 'ribbon',
+      tone: 'success',
+      href: '/certificates',
+    },
+    {
+      label: 'Bu ay eğitim',
+      value: String(m.thisMonthTrainings),
+      hint: `${m.upcoming.length} yaklaşan oturum`,
+      icon: 'school',
+      tone: 'neutral',
+      href: '/trainings',
+    },
   ];
 
   return (
@@ -136,7 +198,8 @@ export default function Dashboard() {
       style={{ flex: 1, backgroundColor: colors.bg }}
       contentContainerStyle={[
         styles.content,
-        { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + 120 },
+        isDesktop && { paddingHorizontal: spacing.xxxl },
+        { paddingTop: insets.top + (isDesktop ? spacing.xxl : spacing.lg), paddingBottom: bottom },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -149,10 +212,14 @@ export default function Dashboard() {
         />
       }
     >
-      <View style={styles.inner}>
+      <View style={[styles.inner, { maxWidth: contentMaxWidth }]}>
         {/* Üst bilgi */}
         <View style={styles.header}>
-          <Pressable onPress={() => router.push('/profile')} accessibilityRole="button" accessibilityLabel="Profil">
+          <Pressable
+            onPress={() => router.push('/profile')}
+            accessibilityRole="button"
+            accessibilityLabel="Profil"
+          >
             <Avatar name={user?.name ? displayName(user.name) : '?'} size={46} tone="amber" />
             <View style={styles.onlineDot} />
           </Pressable>
@@ -191,74 +258,88 @@ export default function Dashboard() {
           </Text>
         </View>
 
-        {/* Uyum skoru */}
-        <LinearGradient
-          colors={[colors.amberLight, colors.amber, colors.amberDark]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View pointerEvents="none" style={styles.heroStripes}>
-            {Array.from({ length: 6 }).map((_, i) => (
-              <View key={i} style={styles.heroStripe} />
-            ))}
-          </View>
-          <View style={styles.heroTop}>
-            <View style={{ gap: 2 }}>
-              <Text style={styles.heroLabel}>Genel uyum skoru</Text>
-              <Text style={styles.heroValue}>%{m.overall}</Text>
-            </View>
-            <View style={styles.heroIcon}>
-              <Ionicons name="shield-checkmark" size={26} color={colors.amber} />
-            </View>
-          </View>
-          <View style={{ gap: spacing.md }}>
-            {m.breakdown.map((b) => (
-              <View key={b.label} style={{ gap: 6 }}>
-                <View style={styles.barRow}>
-                  <Text style={styles.barLabel}>{b.label}</Text>
-                  <Text style={styles.barValue}>%{b.value}</Text>
+        {/* 1. satır: uyum skoru + bekleyen işler (bilgisayarda eşit yükseklik) */}
+        <Columns gap={spacing.xl} style={isDesktop && { alignItems: 'stretch' }}>
+          <Column flex={1} gap={spacing.xl}>
+            {/* Uyum skoru */}
+            <LinearGradient
+              colors={[colors.amberLight, colors.amber, colors.amberDark]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={[styles.hero, isDesktop && { flex: 1, justifyContent: 'space-between' }]}
+            >
+              <View pointerEvents="none" style={styles.heroStripes}>
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <View key={i} style={styles.heroStripe} />
+                ))}
+              </View>
+              <View style={styles.heroTop}>
+                <View style={{ gap: 2 }}>
+                  <Text style={styles.heroLabel}>Genel uyum skoru</Text>
+                  <Text style={styles.heroValue}>%{m.overall}</Text>
                 </View>
-                <View
-                  style={styles.barTrack}
-                  accessibilityRole="progressbar"
-                  accessibilityLabel={b.label}
-                  accessibilityValue={{ min: 0, max: 100, now: b.value }}
-                >
-                  <View style={[styles.barFill, { width: `${b.value}%` }]} />
+                <View style={styles.heroIcon}>
+                  <Ionicons name="shield-checkmark" size={26} color={colors.amber} />
                 </View>
               </View>
-            ))}
-          </View>
-        </LinearGradient>
-
-        {/* Bekleyen işler */}
-        <View style={{ gap: spacing.md }}>
-          <SectionHeader title="Bekleyen işler" />
-          <View style={styles.taskRow}>
-            {tasks.map((t) => {
-              const done = t.count === 0;
-              const tone = done ? TONES.success : TONES[t.tone];
-              return (
-                <Pressable
-                  key={t.label}
-                  onPress={() => router.push(t.href)}
-                  style={({ pressed }) => [styles.task, pressed && { opacity: 0.8 }]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${t.label.replace('\n', ' ')}: ${t.count}`}
-                >
-                  <View style={[styles.taskIcon, { backgroundColor: tone.bg }]}>
-                    <Ionicons name={done ? 'checkmark' : t.icon} size={16} color={tone.fg} />
+              <View style={{ gap: spacing.md }}>
+                {m.breakdown.map((b) => (
+                  <View key={b.label} style={{ gap: 6 }}>
+                    <View style={styles.barRow}>
+                      <Text style={styles.barLabel}>{b.label}</Text>
+                      <Text style={styles.barValue}>%{b.value}</Text>
+                    </View>
+                    <View
+                      style={styles.barTrack}
+                      accessibilityRole="progressbar"
+                      accessibilityLabel={b.label}
+                      accessibilityValue={{ min: 0, max: 100, now: b.value }}
+                    >
+                      <View style={[styles.barFill, { width: `${b.value}%` }]} />
+                    </View>
                   </View>
-                  <Text style={[styles.taskCount, !done && t.tone === 'danger' && { color: colors.danger }]}>
-                    {t.count}
-                  </Text>
-                  <Text style={styles.taskLabel}>{t.label}</Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </View>
+                ))}
+              </View>
+            </LinearGradient>
+          </Column>
+          <Column flex={1.25} gap={spacing.xl}>
+            {/* Bekleyen işler */}
+            <View style={[{ gap: spacing.md }, isDesktop && { flex: 1 }]}>
+              <SectionHeader title="Bekleyen işler" />
+              <View style={[styles.taskRow, isDesktop && { flex: 1 }]}>
+                {tasks.map((t) => {
+                  const done = t.count === 0;
+                  const tone = done ? TONES.success : TONES[t.tone];
+                  return (
+                    <Pressable
+                      key={t.label}
+                      onPress={() => router.push(t.href)}
+                      style={({ pressed }) => [
+                        styles.task,
+                        isDesktop && { justifyContent: 'space-between', padding: spacing.lg },
+                        pressed && { opacity: 0.8 },
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${t.label.replace('\n', ' ')}: ${t.count}`}
+                    >
+                      <View style={[styles.taskIcon, { backgroundColor: tone.bg }]}>
+                        <Ionicons name={done ? 'checkmark' : t.icon} size={16} color={tone.fg} />
+                      </View>
+                      <View>
+                        <Text
+                          style={[styles.taskCount, !done && t.tone === 'danger' && { color: colors.danger }]}
+                        >
+                          {t.count}
+                        </Text>
+                        <Text style={styles.taskLabel}>{t.label}</Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          </Column>
+        </Columns>
 
         {/* KPI'lar */}
         <View style={styles.grid}>
@@ -266,10 +347,18 @@ export default function Dashboard() {
             <Pressable
               key={k.label}
               onPress={() => router.push(k.href)}
-              style={({ pressed }) => [styles.kpi, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [
+                styles.kpi,
+                isDesktop && { flexBasis: '22%' },
+                pressed && { opacity: 0.85 },
+              ]}
             >
               <View style={[styles.kpiIcon, { backgroundColor: TONES[k.tone].bg }]}>
-                <Ionicons name={k.icon} size={18} color={k.tone === 'neutral' ? colors.text : TONES[k.tone].fg} />
+                <Ionicons
+                  name={k.icon}
+                  size={18}
+                  color={k.tone === 'neutral' ? colors.text : TONES[k.tone].fg}
+                />
               </View>
               <Text style={styles.kpiValue}>{k.value}</Text>
               <Text style={styles.kpiLabel}>{k.label}</Text>
@@ -280,116 +369,167 @@ export default function Dashboard() {
           ))}
         </View>
 
-        {/* Aylık sertifika grafiği */}
-        <Card style={{ gap: spacing.md }}>
-          <View>
-            <Text style={styles.cardTitle}>Aylık düzenlenen sertifika</Text>
-            <Text style={styles.cardSub}>Son 6 ay · ayrıntı için bir çubuğa dokunun</Text>
-          </View>
-          <BarChart data={m.monthly} unit="sertifika" />
-        </Card>
-
-        {/* Sertifika durumu */}
-        <Card style={{ gap: spacing.md }}>
-          <View style={styles.cardHead}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>Sertifika durumu</Text>
-              <Text style={styles.cardSub}>Her personelin her eğitimdeki son sertifikası</Text>
-            </View>
-            <Pressable onPress={() => router.push('/certificates')} hitSlop={8}>
-              <Text style={styles.link}>Tümü</Text>
-            </Pressable>
-          </View>
-          <StatusDistribution
-            segments={[
-              { key: 'valid', label: 'Geçerli', value: m.counts.valid, color: colors.success, icon: 'checkmark-circle' },
-              { key: 'expiring', label: '30 gün içinde bitiyor', value: m.counts.expiring, color: colors.amber, icon: 'time' },
-              { key: 'expired', label: 'Süresi dolmuş', value: m.counts.expired, color: colors.danger, icon: 'close-circle' },
-              { key: 'waiting', label: 'Onay / imza sürecinde', value: m.counts.waiting, color: colors.textDim, icon: 'hourglass' },
-            ]}
-          />
-        </Card>
-
-        {/* Yaklaşan eğitimler */}
-        <View style={{ gap: spacing.md }}>
-          <SectionHeader title="Yaklaşan eğitimler" action="Tümü" onAction={() => router.push('/trainings')} />
-          {m.upcoming.slice(0, 3).map((a) => (
-            <AssignmentRow key={a.id} a={a} />
-          ))}
-        </View>
-
-        {/* Süresi yaklaşan sertifikalar */}
-        {m.expiring.length > 0 && (
-          <View style={{ gap: spacing.md }}>
-            <SectionHeader
-              title="Süresi yaklaşan sertifikalar"
-              action={`${m.expiring.length} adet`}
-              onAction={() => router.push({ pathname: '/certificates', params: { filter: 'expiring' } })}
-            />
-            {m.expiring.slice(0, 3).map((c) => (
-              <CertificateRow key={c.id} cert={c} />
-            ))}
-          </View>
-        )}
-
-        {/* Riskli firmalar */}
-        <View style={{ gap: spacing.md }}>
-          <SectionHeader title="Dikkat gerektiren firmalar" action="Firmalar" onAction={() => router.push('/firms')} />
-          <Card style={{ gap: spacing.lg }}>
-            {m.risky.map(({ firm, value }) => (
-              <Pressable key={firm.id} onPress={() => router.push(`/firm/${firm.id}`)} style={{ gap: 8 }}>
-                <View style={styles.riskTop}>
-                  <Text style={styles.riskName} numberOfLines={1}>
-                    {firm.name}
-                  </Text>
-                  <HazardPill hazard={firm.hazard} />
-                </View>
-                <View style={styles.riskBar}>
-                  <View style={{ flex: 1 }}>
-                    <ProgressBar
-                      value={value / 100}
-                      tone={value >= 85 ? 'success' : value >= 65 ? 'amber' : 'danger'}
-                      label={`${firm.name} eğitim uyumu`}
-                    />
-                  </View>
-                  <Text style={styles.riskValue}>%{value}</Text>
-                </View>
-              </Pressable>
-            ))}
-          </Card>
-        </View>
-
-        {/* Ekip kapasitesi */}
-        <View style={{ gap: spacing.md }}>
-          <SectionHeader title="Ekip çalışma süresi" action="Ekip" onAction={() => router.push('/team')} />
-          <Card style={{ gap: spacing.lg }}>
-            <Text style={styles.cardSub}>
-              İSG-KATİP asgari süresi / tam zamanlı kapasite (195 saat/ay)
-              {m.overloaded ? ` · ${m.overloaded} kişi kapasite üstünde` : ''}
-            </Text>
-            {m.load.slice(0, 4).map(({ member, ratio }) => (
-              <View key={member.id} style={styles.loadRow}>
-                <Avatar name={member.name} size={34} />
-                <View style={{ flex: 1, gap: 6 }}>
-                  <View style={styles.barRowDark}>
-                    <Text style={styles.loadName} numberOfLines={1}>
-                      {member.name}
-                    </Text>
-                    <Text style={[styles.loadPct, ratio > 1 && { color: colors.danger }]}>
-                      %{Math.round(ratio * 100)}
-                    </Text>
-                  </View>
-                  <ProgressBar
-                    value={ratio}
-                    tone={ratio > 1 ? 'danger' : ratio > 0.85 ? 'amber' : 'success'}
-                    label={`${member.name} kapasite`}
-                  />
-                  <Text style={styles.loadRole}>{ROLE_LABEL[member.role]}</Text>
-                </View>
+        <Columns gap={spacing.xl}>
+          <Column flex={1.3} gap={spacing.xl}>
+            {/* Aylık sertifika grafiği */}
+            <Card style={{ gap: spacing.md }}>
+              <View>
+                <Text style={styles.cardTitle}>Aylık düzenlenen sertifika</Text>
+                <Text style={styles.cardSub}>Son 6 ay · ayrıntı için bir çubuğa dokunun</Text>
               </View>
-            ))}
-          </Card>
-        </View>
+              <BarChart data={m.monthly} unit="sertifika" />
+            </Card>
+          </Column>
+          <Column flex={1} gap={spacing.xl}>
+            {/* Sertifika durumu */}
+            <Card style={{ gap: spacing.md }}>
+              <View style={styles.cardHead}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle}>Sertifika durumu</Text>
+                  <Text style={styles.cardSub}>Her personelin her eğitimdeki son sertifikası</Text>
+                </View>
+                <Pressable onPress={() => router.push('/certificates')} hitSlop={8}>
+                  <Text style={styles.link}>Tümü</Text>
+                </Pressable>
+              </View>
+              <StatusDistribution
+                segments={[
+                  {
+                    key: 'valid',
+                    label: 'Geçerli',
+                    value: m.counts.valid,
+                    color: colors.success,
+                    icon: 'checkmark-circle',
+                  },
+                  {
+                    key: 'expiring',
+                    label: '30 gün içinde bitiyor',
+                    value: m.counts.expiring,
+                    color: colors.amber,
+                    icon: 'time',
+                  },
+                  {
+                    key: 'expired',
+                    label: 'Süresi dolmuş',
+                    value: m.counts.expired,
+                    color: colors.danger,
+                    icon: 'close-circle',
+                  },
+                  {
+                    key: 'waiting',
+                    label: 'Onay / imza sürecinde',
+                    value: m.counts.waiting,
+                    color: colors.textDim,
+                    icon: 'hourglass',
+                  },
+                ]}
+              />
+            </Card>
+          </Column>
+        </Columns>
+
+        <Columns gap={spacing.xl}>
+          <Column gap={spacing.xl}>
+            {/* Yaklaşan eğitimler */}
+            <View style={{ gap: spacing.md }}>
+              <SectionHeader
+                title="Yaklaşan eğitimler"
+                action="Tümü"
+                onAction={() => router.push('/trainings')}
+              />
+              {m.upcoming.slice(0, 3).map((a) => (
+                <AssignmentRow key={a.id} a={a} />
+              ))}
+            </View>
+          </Column>
+          <Column gap={spacing.xl}>
+            {/* Süresi yaklaşan sertifikalar */}
+            {m.expiring.length > 0 && (
+              <View style={{ gap: spacing.md }}>
+                <SectionHeader
+                  title="Süresi yaklaşan sertifikalar"
+                  action={`${m.expiring.length} adet`}
+                  onAction={() => router.push({ pathname: '/certificates', params: { filter: 'expiring' } })}
+                />
+                {m.expiring.slice(0, 3).map((c) => (
+                  <CertificateRow key={c.id} cert={c} />
+                ))}
+              </View>
+            )}
+          </Column>
+        </Columns>
+
+        <Columns gap={spacing.xl}>
+          <Column gap={spacing.xl}>
+            {/* Riskli firmalar */}
+            <View style={{ gap: spacing.md }}>
+              <SectionHeader
+                title="Dikkat gerektiren firmalar"
+                action="Firmalar"
+                onAction={() => router.push('/firms')}
+              />
+              <Card style={{ gap: spacing.lg }}>
+                {m.risky.map(({ firm, value }) => (
+                  <Pressable key={firm.id} onPress={() => router.push(`/firm/${firm.id}`)} style={{ gap: 8 }}>
+                    <View style={styles.riskTop}>
+                      <Text style={styles.riskName} numberOfLines={1}>
+                        {firm.name}
+                      </Text>
+                      <HazardPill hazard={firm.hazard} />
+                    </View>
+                    <View style={styles.riskBar}>
+                      <View style={{ flex: 1 }}>
+                        <ProgressBar
+                          value={value / 100}
+                          tone={value >= 85 ? 'success' : value >= 65 ? 'amber' : 'danger'}
+                          label={`${firm.name} eğitim uyumu`}
+                        />
+                      </View>
+                      <Text style={styles.riskValue}>%{value}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </Card>
+            </View>
+          </Column>
+          <Column gap={spacing.xl}>
+            {/* Ekip kapasitesi */}
+            <View style={{ gap: spacing.md }}>
+              <SectionHeader
+                title="Ekip çalışma süresi"
+                action="Ekip"
+                onAction={() => router.push('/team')}
+              />
+              <Card style={{ gap: spacing.lg }}>
+                <Text style={styles.cardSub}>
+                  İSG-KATİP asgari süresi / tam zamanlı kapasite (195 saat/ay)
+                  {m.overloaded ? ` · ${m.overloaded} kişi kapasite üstünde` : ''}
+                </Text>
+                {m.load.slice(0, 4).map(({ member, ratio }) => (
+                  <View key={member.id} style={styles.loadRow}>
+                    <Avatar name={member.name} size={34} />
+                    <View style={{ flex: 1, gap: 6 }}>
+                      <View style={styles.barRowDark}>
+                        <Text style={styles.loadName} numberOfLines={1}>
+                          {member.name}
+                        </Text>
+                        <Text style={[styles.loadPct, ratio > 1 && { color: colors.danger }]}>
+                          %{Math.round(ratio * 100)}
+                        </Text>
+                      </View>
+                      <ProgressBar
+                        value={ratio}
+                        tone={ratio > 1 ? 'danger' : ratio > 0.85 ? 'amber' : 'success'}
+                        label={`${member.name} kapasite`}
+                      />
+                      <Text style={styles.loadRole}>{ROLE_LABEL[member.role]}</Text>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            </View>
+          </Column>
+        </Columns>
 
         {m.contractsEnding > 0 && (
           <Card highlight onPress={() => router.push('/firms')} style={styles.notice}>
@@ -407,7 +547,7 @@ export default function Dashboard() {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: spacing.xl },
-  inner: { width: '100%', maxWidth: 600, alignSelf: 'center', gap: spacing.xl },
+  inner: { width: '100%', alignSelf: 'center', gap: spacing.xl },
 
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   onlineDot: {
@@ -465,7 +605,13 @@ const styles = StyleSheet.create({
   heroStripe: { width: 12, height: 200, backgroundColor: colors.onAmber },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   heroLabel: { color: 'rgba(10,10,11,0.7)', fontSize: 13, fontWeight: font.semibold },
-  heroValue: { color: colors.onAmber, fontSize: 44, lineHeight: 48, fontWeight: font.heavy, letterSpacing: -1.5 },
+  heroValue: {
+    color: colors.onAmber,
+    fontSize: 44,
+    lineHeight: 48,
+    fontWeight: font.heavy,
+    letterSpacing: -1.5,
+  },
   heroIcon: {
     width: 50,
     height: 50,
