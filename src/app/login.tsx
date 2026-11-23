@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -20,6 +21,7 @@ import { BrandMark } from '@/components/BrandMark';
 import { Button } from '@/components/ui/Button';
 import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
+import { useSession } from '@/lib/session';
 import { AuthError, signIn, validateLogin, type UserRole } from '@/lib/auth';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -51,7 +53,7 @@ export default function LoginScreen() {
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [welcome, setWelcome] = useState<string | null>(null);
+  const { setUser } = useSession();
 
   // Giriş animasyonu
   const enter = useRef(new Animated.Value(0)).current;
@@ -90,7 +92,8 @@ export default function LoginScreen() {
     try {
       const user = await signIn({ email: email.trim(), password, role, remember });
       haptic('success');
-      setWelcome(user.name);
+      setUser({ name: user.name, email: email.trim(), role: user.role });
+      router.replace('/dashboard');
     } catch (e) {
       haptic('error');
       setFormError(e instanceof AuthError ? e.message : 'Bağlantı hatası. Tekrar deneyin.');
@@ -153,28 +156,7 @@ export default function LoginScreen() {
             </Animated.View>
 
             <Animated.View style={[styles.card, rise(28)]}>
-              {welcome ? (
-                <View style={styles.success}>
-                  <View style={styles.successIcon}>
-                    <Ionicons name="checkmark" size={34} color={colors.onAmber} />
-                  </View>
-                  <Text style={styles.successTitle}>Giriş başarılı</Text>
-                  <Text style={styles.successText}>
-                    Hoş geldiniz, <Text style={{ color: colors.amber }}>{welcome}</Text>. Panel
-                    ekranı bir sonraki adımda eklenecek.
-                  </Text>
-                  <Button
-                    title="Geri dön"
-                    variant="outline"
-                    icon="arrow-back"
-                    onPress={() => {
-                      setWelcome(null);
-                      setPassword('');
-                    }}
-                  />
-                </View>
-              ) : (
-                <>
+              <>
                   <View style={{ gap: spacing.sm }}>
                     <Text style={styles.sectionLabel}>Giriş türü</Text>
                     <SegmentedControl
@@ -264,8 +246,7 @@ export default function LoginScreen() {
                   </View>
 
                   <Button title="Biyometrik ile giriş" variant="outline" icon="finger-print" />
-                </>
-              )}
+              </>
             </Animated.View>
 
             <Animated.View style={[styles.footer, rise(36)]}>
@@ -384,24 +365,6 @@ const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   line: { flex: 1, height: 1, backgroundColor: colors.border },
   dividerText: { color: colors.textDim, fontSize: 12, fontWeight: font.medium },
-
-  success: { alignItems: 'stretch', gap: spacing.lg, paddingVertical: spacing.md },
-  successIcon: {
-    alignSelf: 'center',
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.amber,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  successTitle: {
-    color: colors.white,
-    fontSize: 22,
-    fontWeight: font.bold,
-    textAlign: 'center',
-  },
-  successText: { color: colors.textMuted, fontSize: 14.5, lineHeight: 21, textAlign: 'center' },
 
   footer: { alignItems: 'center', gap: spacing.md, marginTop: 'auto' },
   footerText: { color: colors.textMuted, fontSize: 14 },
