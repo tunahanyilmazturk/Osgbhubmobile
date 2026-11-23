@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "OSGB Hub",
+    "slug": "osgb-hub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0A0A0B",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "name": "OSGB Hub",
+      "themeColor": "#0A0A0B"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "osgbhub",
+    "backgroundColor": "#0A0A0B",
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
