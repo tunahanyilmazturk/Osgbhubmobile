@@ -30,6 +30,7 @@ export const colors = {
   danger: '#FF5A5F',
   dangerSoft: 'rgba(255, 90, 95, 0.12)',
   success: '#3DDC97',
+  successSoft: 'rgba(61, 220, 151, 0.12)',
 } as const;
 
 export const spacing = {

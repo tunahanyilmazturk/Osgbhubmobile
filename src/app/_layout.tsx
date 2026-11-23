@@ -32,7 +32,7 @@ function RootNavigator() {
         <Stack.Screen name="login" />
       </Stack.Protected>
       <Stack.Protected guard={!!user}>
-        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="(app)" />
       </Stack.Protected>
     </Stack>
   );
