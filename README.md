@@ -37,6 +37,20 @@ npm run web         # tarayıcıda çalıştır
 npm run typecheck
 ```
 
+## Web yayını (Cloudflare · osgbhub.com)
+
+Web sürümü Cloudflare Workers üzerinde statik dosya olarak yayınlanır. Ayarlar `wrangler.jsonc` içinde:
+`dist/` klasörü yayınlanır, derin bağlantılar `index.html`'e düşer, `osgbhub.com` ve `www.osgbhub.com`
+deploy sırasında otomatik bağlanır. Önbellek ve güvenlik başlıkları `public/_headers` dosyasındadır.
+
+```bash
+npm run build:web   # dist/ klasörünü üretir
+npm run deploy      # derler ve Cloudflare'e yükler (wrangler login gerekir)
+```
+
+Cloudflare panelinde GitHub bağlantısı (Workers Builds) için:
+build komutu `npm run build:web`, deploy komutu `npx wrangler deploy`.
+
 ## Klasör yapısı
 
 ```

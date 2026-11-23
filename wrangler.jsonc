@@ -1,0 +1,18 @@
+{
+  // Cloudflare Workers — OSGB Hub web sürümü (statik dosyalar)
+  // Derleme: `npm run build:web` → ./dist
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "osgbhub",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    // Expo Router tek sayfa uygulaması: /firm/f1 gibi derin bağlantılar index.html'e düşer
+    "not_found_handling": "single-page-application"
+  },
+  // Domain bu Cloudflare hesabında olduğu için deploy sırasında otomatik bağlanır (DNS + SSL)
+  "routes": [
+    { "pattern": "osgbhub.com", "custom_domain": true },
+    { "pattern": "www.osgbhub.com", "custom_domain": true }
+  ],
+  "workers_dev": true
+}
