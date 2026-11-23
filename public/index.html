@@ -12,6 +12,12 @@
     <meta name="apple-mobile-web-app-title" content="OSGB Hub" />
     <meta name="format-detection" content="telephone=no" />
     <title>%WEB_TITLE%</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
     <!-- Kayıtlı temayı uygulama yüklenmeden uygula (açılışta renk sıçraması olmasın) -->
     <script>
       try {
@@ -25,12 +31,13 @@
         height: 100%;
         margin: 0;
         /* Safari'de lastik bant kaydırmada zemin tema renginde kalsın */
-        background-color: #0a0a0b;
+        background-color: #09090b;
         color-scheme: dark;
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       }
       html[data-theme='light'],
       html[data-theme='light'] body {
-        background-color: #f4f4f1;
+        background-color: #f5f4ef;
         color-scheme: light;
       }
       body {
@@ -39,6 +46,28 @@
         -webkit-text-size-adjust: 100%;
         -webkit-tap-highlight-color: transparent;
         -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      * {
+        font-family: inherit;
+        box-sizing: border-box;
+      }
+      ::selection {
+        background: rgba(255, 176, 32, 0.28);
+      }
+      ::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(161, 161, 170, 0.24);
+        border-radius: 999px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(255, 176, 32, 0.45);
       }
       #root {
         display: flex;

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
@@ -107,11 +107,12 @@ export function DataTable<T>({
   const [width, setWidth] = useState(0);
   const [jump, setJump] = useState('');
 
-  // Filtre değişince ilk sayfaya dön (render sırasında türetilen state)
+  // Filtre değişince ilk sayfaya dön ve seçimi temizle (render sırasında türetilen state)
   const [lastReset, setLastReset] = useState(resetKey);
   if (lastReset !== resetKey) {
     setLastReset(resetKey);
     setPage(1);
+    setSelected(new Set());
   }
 
   const sorted = useMemo(() => {
@@ -165,9 +166,20 @@ export function DataTable<T>({
   const minTable = 44 + columns.reduce((sum, c) => sum + (c.minWidth ?? 120), 0);
   const scrollTable = width > 0 && width < minTable;
 
+  const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    };
+  }, []);
+
   const flash = (msg: string) => {
     setNotice(msg);
-    setTimeout(() => setNotice(null), 5000);
+    if (noticeTimer.current) clearTimeout(noticeTimer.current);
+    noticeTimer.current = setTimeout(() => {
+      noticeTimer.current = null;
+      setNotice(null);
+    }, 5000);
   };
 
   /* ---------------- Tablo ---------------- */
@@ -519,7 +531,12 @@ function TableRow({
       onPress={onPress}
       onHoverIn={() => setHover(true)}
       onHoverOut={() => setHover(false)}
-      style={[styles.tr, !last && styles.trBorder, hover && { backgroundColor: colors.surface }, selected && { backgroundColor: colors.highlight }]}
+      style={[
+        styles.tr,
+        !last && styles.trBorder,
+        hover && { backgroundColor: colors.surface },
+        selected && styles.trSelected,
+      ]}
     >
       {children}
     </Pressable>
@@ -615,12 +632,23 @@ const styles = StyleSheet.create({
   notice: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.amberSoft },
   noticeText: { flex: 1, color: colors.text, fontSize: 13 },
 
-  table: { borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgElevated, overflow: 'hidden' },
-  tr: { flexDirection: 'row', alignItems: 'center', minHeight: 56 },
+  table: {
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.bgElevated,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  tr: { flexDirection: 'row', alignItems: 'center', minHeight: 56, borderLeftWidth: 3, borderLeftColor: 'transparent' },
+  trSelected: { backgroundColor: colors.highlight, borderLeftColor: colors.amber },
   trBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  thead: { minHeight: 42, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
-  thCell: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: spacing.md, height: 42 },
-  th: { color: colors.textMuted, fontSize: 12, fontWeight: font.bold, letterSpacing: 0.3, textTransform: 'uppercase', flexShrink: 1 },
+  thead: { minHeight: 44, backgroundColor: colors.surface, borderBottomWidth: 1, borderBottomColor: colors.border },
+  thCell: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: spacing.md, height: 44 },
+  th: { color: colors.textMuted, fontSize: 11.5, fontWeight: font.bold, letterSpacing: 0.5, textTransform: 'uppercase', flexShrink: 1 },
   td: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.md, paddingVertical: 10, minHeight: 56 },
   checkCell: { width: 44, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   check: {

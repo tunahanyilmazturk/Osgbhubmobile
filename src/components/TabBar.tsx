@@ -57,15 +57,16 @@ export function TabBar({ state, emitter, navigateToTab }: BottomTabBarProps) {
                   accessibilityLabel={meta.label}
                   accessibilityState={{ selected: focused }}
                 >
-                  <Ionicons
-                    name={focused ? meta.iconActive : meta.icon}
-                    size={22}
-                    color={focused ? colors.amber : colors.textDim}
-                  />
+                  <View style={[styles.tabPill, focused && styles.tabPillActive]}>
+                    <Ionicons
+                      name={focused ? meta.iconActive : meta.icon}
+                      size={21}
+                      color={focused ? colors.amber : colors.textDim}
+                    />
+                  </View>
                   <Text style={[styles.label, { color: focused ? colors.amber : colors.textDim }]}>
                     {meta.label}
                   </Text>
-                  <View style={[styles.dot, focused && { backgroundColor: colors.amber }]} />
                 </Pressable>
 
                 {route.name === CENTER_AFTER && (
@@ -105,7 +106,7 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 68,
+    height: 70,
     width: '100%',
     maxWidth: 480,
     alignSelf: 'center',
@@ -113,16 +114,26 @@ const styles = StyleSheet.create({
     backgroundColor: colors.tabBarBg,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingHorizontal: 6,
+    paddingHorizontal: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.6,
+    shadowOpacity: 0.45,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 10 },
     elevation: 16,
-  },
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(16px)' } : {}),
+  } as object,
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%' },
+  tabPill: {
+    width: 44,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabPillActive: {
+    backgroundColor: colors.amberSoft,
+  },
   label: { fontSize: 11, fontWeight: font.semibold },
-  dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'transparent' },
   centerSlot: { flex: 1, alignItems: 'center' },
   centerShadow: {
     marginTop: -30,

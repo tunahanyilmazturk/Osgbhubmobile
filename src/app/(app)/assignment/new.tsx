@@ -31,7 +31,7 @@ export default function NewAssignment() {
   const params = useLocalSearchParams<{ firmId?: string; trainingId?: string }>();
   const s = useAppState();
 
-  const [trainingId, setTrainingId] = useState(params.trainingId ?? s.trainings[0].id);
+  const [trainingId, setTrainingId] = useState(params.trainingId ?? s.trainings[0]?.id ?? '');
   const [firmId, setFirmId] = useState(params.firmId ?? '');
   const [trainerId, setTrainerId] = useState('');
   const [date, setDate] = useState(daysFromNow(3));
@@ -81,17 +81,19 @@ export default function NewAssignment() {
       return n;
     });
 
+  const withoutAccount = s.participants.filter((p) => selected.has(p.id) && !p.account);
+
   const submit = () => {
+    if (!trainingId) return setError('Eğitim seçin');
     if (!firmId) return setError('Firma seçin');
     if (!trainerId) return setError('Eğitmen seçin');
     if (!selected.size) return setError('En az bir katılımcı seçin');
     const training = s.trainings.find((x) => x.id === trainingId);
     if (
       delivery === 'online' &&
-      !training?.content.lessons.length &&
-      !training?.content.finalExam.questions.length
+      (!training?.content.lessons.length || !training?.content.finalExam.questions.length)
     ) {
-      return setError('Bu eğitimin online içeriği yok. Önce içerik editöründen ders ve sınav ekleyin.');
+      return setError('Online atama için eğitimde en az bir ders ve bir final sorusu olmalı.');
     }
     setError(null);
     const online = delivery === 'online';
@@ -121,8 +123,6 @@ export default function NewAssignment() {
     }
     router.replace(`/assignment/${id}`);
   };
-
-  const withoutAccount = s.participants.filter((p) => selected.has(p.id) && !p.account);
 
   const needCount = people.filter((x) => x.needs).length;
 

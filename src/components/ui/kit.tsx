@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, type Href } from 'expo-router';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import {
   Pressable,
@@ -15,15 +15,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { initials } from '@/lib/format';
 import { useLayout } from '@/lib/responsive';
+import { useSession } from '@/lib/session';
 import { colors, font, radius, spacing } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 export type Tone = 'amber' | 'success' | 'danger' | 'neutral';
 
 export const TONES: Record<Tone, { fg: string; bg: string; border: string }> = {
-  amber: { fg: colors.amber, bg: colors.amberSoft, border: 'rgba(255,176,32,0.3)' },
-  success: { fg: colors.success, bg: colors.successSoft, border: 'rgba(61,220,151,0.3)' },
-  danger: { fg: colors.danger, bg: colors.dangerSoft, border: 'rgba(255,90,95,0.3)' },
+  amber: { fg: colors.amber, bg: colors.amberSoft, border: colors.amberBorder },
+  success: { fg: colors.success, bg: colors.successSoft, border: colors.successBorder },
+  danger: { fg: colors.danger, bg: colors.dangerSoft, border: colors.dangerBorder },
   neutral: { fg: colors.textMuted, bg: colors.surfaceHigh, border: colors.border },
 };
 
@@ -40,9 +41,9 @@ export function usePageWidth(width: 'narrow' | 'wide' = 'wide') {
 
 /* ---------------- Ekran başlığı ---------------- */
 
-export function goBack() {
+export function goBack(fallback: Href = '/dashboard') {
   if (router.canGoBack()) router.back();
-  else router.replace('/dashboard');
+  else router.replace(fallback);
 }
 
 type HeaderProps = {
@@ -56,7 +57,9 @@ type HeaderProps = {
 export function ScreenHeader({ title, subtitle, back = true, right, large }: HeaderProps) {
   const insets = useSafeAreaInsets();
   const { isDesktop, isWide, contentMaxWidth } = useLayout();
+  const { user } = useSession();
   const maxWidth = useContext(WidthContext) ?? contentMaxWidth;
+  const fallback: Href = user?.role === 'participant' ? '/my-trainings' : '/dashboard';
   return (
     <View
       style={[
@@ -69,13 +72,13 @@ export function ScreenHeader({ title, subtitle, back = true, right, large }: Hea
       <View style={[s.headerRow, { maxWidth }]}>
         {back && (
           <Pressable
-            onPress={goBack}
-            style={s.headerBtn}
+            onPress={() => goBack(fallback)}
+            style={({ hovered, pressed }) => [s.headerBtn, hovered && s.headerBtnHover, pressed && { opacity: 0.8 }]}
             hitSlop={8}
             accessibilityRole="button"
             accessibilityLabel="Geri"
           >
-            <Ionicons name="chevron-back" size={22} color={colors.text} />
+            <Ionicons name="chevron-back" size={20} color={colors.text} />
           </Pressable>
         )}
         <View style={{ flex: 1 }}>
@@ -219,12 +222,15 @@ export function SearchBar({
   onChangeText: (t: string) => void;
   placeholder?: string;
 }) {
+  const [focused, setFocused] = useState(false);
   return (
-    <View style={s.search}>
-      <Ionicons name="search" size={18} color={colors.textDim} />
+    <View style={[s.search, focused && s.searchFocused]}>
+      <Ionicons name="search" size={18} color={focused ? colors.amber : colors.textDim} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
         placeholder={placeholder}
         placeholderTextColor={colors.textDim}
         selectionColor={colors.amber}
@@ -267,13 +273,13 @@ export function Chips<T extends string>({
           <Pressable
             key={o.value}
             onPress={() => onChange(o.value)}
-            style={[s.chip, active && s.chipActive]}
+            style={({ hovered }) => [s.chip, hovered && !active && s.chipHover, active && s.chipActive]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
             <Text style={[s.chipText, active && { color: colors.onAmber }]}>{o.label}</Text>
             {o.count !== undefined && (
-              <View style={[s.chipCount, active && { backgroundColor: 'rgba(10,10,11,0.15)' }]}>
+              <View style={[s.chipCount, active && { backgroundColor: 'rgba(9,9,11,0.16)' }]}>
                 <Text style={[s.chipCountText, active && { color: colors.onAmber }]}>{o.count}</Text>
               </View>
             )}
@@ -421,9 +427,17 @@ export function SectionHeader({
 }) {
   return (
     <View style={s.sectionHeader}>
-      <Text style={s.sectionTitle}>{title}</Text>
+      <View style={s.sectionTitleWrap}>
+        <View style={s.sectionAccent} />
+        <Text style={s.sectionTitle}>{title}</Text>
+      </View>
       {action && (
-        <Pressable hitSlop={8} style={s.sectionAction} onPress={onAction} accessibilityRole="link">
+        <Pressable
+          hitSlop={8}
+          style={({ hovered }) => [s.sectionAction, hovered && s.sectionActionHover]}
+          onPress={onAction}
+          accessibilityRole="link"
+        >
           <Text style={s.sectionActionText}>{action}</Text>
           <Ionicons name="chevron-forward" size={14} color={colors.amber} />
         </Pressable>
@@ -528,16 +542,17 @@ const s = StyleSheet.create({
   headerBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: 12,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { color: colors.white, fontSize: 20, fontWeight: font.bold, letterSpacing: -0.4 },
-  headerTitleLarge: { fontSize: 28, fontWeight: font.heavy, letterSpacing: -0.8 },
-  headerSubtitle: { color: colors.textDim, fontSize: 13, fontWeight: font.medium, marginTop: 1 },
+  headerBtnHover: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  headerTitle: { color: colors.white, fontSize: 21, fontWeight: font.bold, letterSpacing: -0.5 },
+  headerTitleLarge: { fontSize: 28, fontWeight: font.heavy, letterSpacing: -0.9 },
+  headerSubtitle: { color: colors.textDim, fontSize: 13, fontWeight: font.medium, marginTop: 2 },
 
   search: {
     flexDirection: 'row',
@@ -550,13 +565,17 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  searchFocused: {
+    borderColor: colors.amber,
+    backgroundColor: colors.surface,
+  },
   searchInput: {
     flex: 1,
     minWidth: 0,
     height: '100%',
     color: colors.text,
     // iOS Safari 16px altındaki alanlarda odaklanınca sayfayı yakınlaştırır
-    fontSize: 16,
+    fontSize: 15,
     outlineStyle: 'none',
   } as object,
 
@@ -565,14 +584,22 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    height: 34,
+    height: 36,
     paddingHorizontal: 14,
     borderRadius: radius.pill,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  chipActive: { backgroundColor: colors.amber, borderColor: colors.amber },
+  chipHover: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
+  chipActive: {
+    backgroundColor: colors.amber,
+    borderColor: colors.amber,
+    shadowColor: colors.amber,
+    shadowOpacity: 0.22,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
   chipText: { color: colors.textMuted, fontSize: 13, fontWeight: font.semibold },
   chipCount: {
     minWidth: 20,
@@ -583,15 +610,15 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chipCountText: { color: colors.textMuted, fontSize: 11, fontWeight: font.bold },
+  chipCountText: { color: colors.textMuted, fontSize: 11, fontWeight: font.bold, fontVariant: ['tabular-nums'] },
 
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 9,
+    paddingVertical: 3.5,
     borderRadius: radius.pill,
     borderWidth: 1,
   },
@@ -603,10 +630,14 @@ const s = StyleSheet.create({
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
   cardHover: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
-  cardHighlight: { borderColor: 'rgba(255,176,32,0.45)', backgroundColor: colors.highlight },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
+  cardHighlight: { borderColor: colors.amberBorder, backgroundColor: colors.highlight },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md + 2 },
   rowTitle: { color: colors.text, fontSize: 15, fontWeight: font.semibold },
   rowSubtitle: { color: colors.textDim, fontSize: 12.5 },
 
@@ -614,15 +645,25 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: spacing.sm,
+    marginTop: spacing.xs,
   },
-  sectionTitle: { color: colors.white, fontSize: 17, fontWeight: font.bold, letterSpacing: -0.3 },
-  sectionAction: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  sectionTitleWrap: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  sectionAccent: { width: 3, height: 16, borderRadius: 2, backgroundColor: colors.amber },
+  sectionTitle: { color: colors.white, fontSize: 16.5, fontWeight: font.bold, letterSpacing: -0.3 },
+  sectionAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+  },
+  sectionActionHover: { backgroundColor: colors.amberSoft },
   sectionActionText: { color: colors.amber, fontSize: 13, fontWeight: font.semibold },
 
-  empty: { alignItems: 'center', gap: spacing.sm, paddingVertical: 48 },
+  empty: { alignItems: 'center', gap: spacing.sm, paddingVertical: 56 },
   emptyTitle: { color: colors.white, fontSize: 17, fontWeight: font.bold, marginTop: spacing.sm },
-  emptyText: { color: colors.textMuted, fontSize: 14, textAlign: 'center', maxWidth: 280, lineHeight: 20 },
+  emptyText: { color: colors.textMuted, fontSize: 14, textAlign: 'center', maxWidth: 300, lineHeight: 20 },
 
   checkbox: {
     width: 22,
@@ -635,11 +676,21 @@ const s = StyleSheet.create({
   },
   checkboxOn: { backgroundColor: colors.amber, borderColor: colors.amber },
 
-  info: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, paddingVertical: 6 },
-  infoLabel: { color: colors.textMuted, fontSize: 13.5, width: 96 },
-  infoValue: { flex: 1, color: colors.text, fontSize: 13.5, fontWeight: font.semibold, textAlign: 'right' },
+  info: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 7 },
+  infoLabel: { color: colors.textMuted, fontSize: 13.5, width: 108 },
+  infoValue: { flex: 1, color: colors.text, fontSize: 13.5, fontWeight: font.semibold, textAlign: 'right', fontVariant: ['tabular-nums'] },
 
-  mini: { flex: 1, gap: 2 },
-  miniValue: { color: colors.white, fontSize: 22, fontWeight: font.heavy, letterSpacing: -0.5 },
-  miniLabel: { color: colors.textDim, fontSize: 12, fontWeight: font.medium },
+  mini: {
+    flex: 1,
+    gap: 3,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginHorizontal: 3,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  miniValue: { color: colors.white, fontSize: 22, fontWeight: font.heavy, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  miniLabel: { color: colors.textDim, fontSize: 11.5, fontWeight: font.medium },
 });

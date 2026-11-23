@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -34,6 +34,13 @@ export default function ESignature() {
   const [method, setMethod] = useState<Method>('mobile');
   const [pin, setPin] = useState('');
   const [signedCount, setSignedCount] = useState(0);
+  const signTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (signTimer.current) clearTimeout(signTimer.current);
+    };
+  }, []);
 
   // Bekleyen: onaylı sertifikalar eğitim oturumuna göre gruplanır + belgeler
   const items = useMemo(() => {
@@ -68,8 +75,8 @@ export default function ESignature() {
 
   const signedHistory = useMemo(() => {
     const docs = s.documents
-      .filter((d) => d.status === 'signed')
-      .map((d) => ({ key: d.id, title: d.title, sub: L.firm(d.firmId)?.name ?? '', date: d.signedAt!, by: d.signedBy! }));
+      .filter((d) => d.status === 'signed' && d.signedAt)
+      .map((d) => ({ key: d.id, title: d.title, sub: L.firm(d.firmId)?.name ?? '', date: d.signedAt ?? '', by: d.signedBy ?? '' }));
     // Son imzalanan sertifikaları oturum bazında göster
     const recent = new Map<string, { count: number; date: string; by: string; title: string; sub: string }>();
     for (const c of s.certificates) {
@@ -118,7 +125,9 @@ export default function ESignature() {
     setPin(next);
     if (next.length === PIN_LENGTH) {
       setPhase('signing');
-      setTimeout(() => {
+      if (signTimer.current) clearTimeout(signTimer.current);
+      signTimer.current = setTimeout(() => {
+        signTimer.current = null;
         const certIds = chosen.filter((i) => i.kind === 'cert').flatMap((i) => i.ids);
         const docIds = chosen.filter((i) => i.kind === 'doc').flatMap((i) => i.ids);
         actions.sign(certIds, docIds, me);

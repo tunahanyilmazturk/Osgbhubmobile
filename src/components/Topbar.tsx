@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, usePathname, type Href } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View, type TextInputInstance } from 'react-native';
 
 import { Avatar, type IconName, type Tone } from '@/components/ui/kit';
 import { MenuDivider, MenuItem, MenuTitle, Popover } from '@/components/ui/Popover';
@@ -128,6 +128,20 @@ export function Topbar({ variant = 'staff' }: { variant?: 'staff' | 'participant
   const { isDesktop } = useLayout();
   const [q, setQ] = useState('');
   const [focus, setFocus] = useState(false);
+  const searchRef = useRef<TextInputInstance>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || variant !== 'staff' || typeof window === 'undefined') return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement | null)?.isContentEditable) return;
+      e.preventDefault();
+      searchRef.current?.focus();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [variant]);
 
   const path = useMemo(() => crumbs(pathname, s), [pathname, s]);
   const list = useMemo(() => notices(s, variant === 'participant' ? user?.participantId : undefined), [s, variant, user?.participantId]);
@@ -175,9 +189,10 @@ export function Topbar({ variant = 'staff' }: { variant?: 'staff' | 'participant
       {/* Genel arama */}
       {variant === 'staff' && (
         <View style={[styles.searchWrap, !isDesktop && { width: 220 }]}>
-          <View style={[styles.search, focus && { borderColor: colors.amber }]}>
-            <Ionicons name="search" size={16} color={colors.textDim} />
+          <View style={[styles.search, focus && styles.searchFocused]}>
+            <Ionicons name="search" size={16} color={focus ? colors.amber : colors.textDim} />
             <TextInput
+              ref={searchRef}
               value={q}
               onChangeText={setQ}
               onFocus={() => setFocus(true)}
@@ -188,10 +203,16 @@ export function Topbar({ variant = 'staff' }: { variant?: 'staff' | 'participant
               style={styles.searchInput}
               accessibilityLabel="Genel arama"
             />
-            {!!q && (
+            {q ? (
               <Pressable onPress={() => setQ('')} hitSlop={8} accessibilityLabel="Aramayı temizle">
                 <Ionicons name="close-circle" size={16} color={colors.textDim} />
               </Pressable>
+            ) : (
+              Platform.OS === 'web' && !focus && (
+                <View style={styles.kbd}>
+                  <Text style={styles.kbdText}>/</Text>
+                </View>
+              )
             )}
           </View>
           {focus && q.trim().length >= 2 && (
@@ -361,27 +382,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.lg,
     paddingHorizontal: spacing.xxxl,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.barBg,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
-  },
+    ...(Platform.OS === 'web' ? { backdropFilter: 'blur(12px)' } : {}),
+  } as object,
   crumbs: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' },
   crumbRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 },
   crumb: { color: colors.textMuted, fontSize: 13.5, fontWeight: font.medium },
-  crumbLast: { color: colors.white, fontWeight: font.semibold },
+  crumbLast: { color: colors.white, fontWeight: font.bold },
   crumbLink: { color: colors.textMuted, fontSize: 13.5, fontWeight: font.medium },
-  searchWrap: { width: 340, position: 'relative' },
+  searchWrap: { width: 350, position: 'relative' },
   search: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    height: 38,
+    height: 40,
     paddingHorizontal: spacing.md,
-    borderRadius: radius.pill,
+    borderRadius: radius.md,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.bgElevated,
   },
+  searchFocused: {
+    borderColor: colors.amber,
+    backgroundColor: colors.surface,
+  },
+  kbd: {
+    minWidth: 22,
+    height: 22,
+    paddingHorizontal: 6,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kbdText: { color: colors.textDim, fontSize: 11, fontWeight: font.bold },
   searchInput: { flex: 1, minWidth: 0, height: '100%', color: colors.text, fontSize: 14, outlineStyle: 'none' } as object,
   results: {
     position: 'absolute',

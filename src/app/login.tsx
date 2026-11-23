@@ -71,18 +71,24 @@ export default function LoginScreen() {
   const enter = useState(() => new Animated.Value(0))[0];
   const glow = useState(() => new Animated.Value(0))[0];
   useEffect(() => {
-    Animated.timing(enter, {
+    const enterAnim = Animated.timing(enter, {
       toValue: 1,
       duration: 700,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
-    }).start();
-    Animated.loop(
+    });
+    const glowAnim = Animated.loop(
       Animated.sequence([
         Animated.timing(glow, { toValue: 1, duration: 3200, useNativeDriver: true }),
         Animated.timing(glow, { toValue: 0, duration: 3200, useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    enterAnim.start();
+    glowAnim.start();
+    return () => {
+      enterAnim.stop();
+      glowAnim.stop();
+    };
   }, [enter, glow]);
 
   const rise = (offset: number) => ({

@@ -6,7 +6,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { DateField, FormActions, FormError, SelectField, type Option } from '@/components/ui/forms';
-import { Card, Chips, Column, Columns, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
+import { Card, Chips, Column, Columns, EmptyState, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
 import { FULL_TIME_MINUTES, HAZARD_LABEL, actions, classAllowed, memberLoad, useAppState } from '@/data/store';
 import type { Firm, HazardClass, TeamRole } from '@/data/types';
 import { addMonths, daysFromNow } from '@/lib/format';
@@ -36,6 +36,14 @@ export function FirmForm({ id }: { id?: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+
+  if (id && !existing) {
+    return (
+      <Screen header={<ScreenHeader title="Firma" />}>
+        <EmptyState icon="business" title="Firma bulunamadı" />
+      </Screen>
+    );
+  }
 
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => {
     setD((x) => ({ ...x, [k]: v }));

@@ -85,6 +85,10 @@ const styles = StyleSheet.create({
     left: PAD,
     borderRadius: radius.sm,
     backgroundColor: colors.amber,
+    shadowColor: colors.amber,
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   segment: {
     flex: 1,

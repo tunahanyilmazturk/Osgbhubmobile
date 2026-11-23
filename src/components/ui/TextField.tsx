@@ -68,13 +68,14 @@ export function TextField({
         {secureToggle && (
           <Pressable
             onPress={() => setHidden((h) => !h)}
-            hitSlop={12}
+            hitSlop={10}
+            style={({ hovered }) => [styles.eyeBtn, hovered && { backgroundColor: colors.surfaceHigh }]}
             accessibilityRole="button"
             accessibilityLabel={hidden ? 'Şifreyi göster' : 'Şifreyi gizle'}
           >
             <Ionicons
               name={hidden ? 'eye-outline' : 'eye-off-outline'}
-              size={20}
+              size={19}
               color={colors.textMuted}
             />
           </Pressable>
@@ -102,11 +103,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-    height: 56,
+    height: 54,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.md,
     borderWidth: 1.5,
     backgroundColor: colors.surface,
+    overflow: 'hidden',
+  },
+  eyeBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+    marginRight: -6,
   },
   fieldFocused: {
     backgroundColor: colors.surfaceHigh,

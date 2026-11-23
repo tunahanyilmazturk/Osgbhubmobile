@@ -26,8 +26,15 @@ export default function AssignmentDetail() {
   const s = useAppState();
   const L = useLookups();
   const a = s.assignments.find((x) => x.id === id);
+  const [prevId, setPrevId] = useState(a?.id);
   const [attended, setAttended] = useState<Set<string>>(() => new Set(a?.participantIds ?? []));
   const [doneCount, setDoneCount] = useState<number | null>(null);
+
+  if (prevId !== a?.id) {
+    setPrevId(a?.id);
+    setAttended(new Set(a?.participantIds ?? []));
+    setDoneCount(null);
+  }
 
   if (!a) {
     return (
@@ -55,6 +62,8 @@ export default function AssignmentDetail() {
       return next;
     });
   };
+
+  const validAttended = a.participantIds.filter((pid) => attended.has(pid));
 
   return (
     <Screen header={<ScreenHeader title={t?.title ?? 'Atama'} subtitle={firm?.name} />}>
@@ -84,7 +93,7 @@ export default function AssignmentDetail() {
       )}
 
       <SectionHeader
-        title={editable ? `Yoklama (${attended.size}/${a.participantIds.length})` : `Katılımcılar (${a.participantIds.length})`}
+        title={editable ? `Yoklama (${validAttended.length}/${a.participantIds.length})` : `Katılımcılar (${a.participantIds.length})`}
       />
       {editable && <Text style={styles.dim}>Eğitime katılmayan kişilerin işaretini kaldırın.</Text>}
       <Card style={{ padding: 0 }}>
@@ -120,10 +129,10 @@ export default function AssignmentDetail() {
       )}
       {editable && (
         <Button
-          title={`Tamamla ve ${attended.size} sertifika oluştur`}
+          title={`Tamamla ve ${validAttended.length} sertifika oluştur`}
           icon="ribbon"
-          disabled={attended.size === 0}
-          onPress={() => setDoneCount(actions.completeAssignment(a.id, [...attended]))}
+          disabled={validAttended.length === 0}
+          onPress={() => setDoneCount(actions.completeAssignment(a.id, validAttended))}
         />
       )}
       {a.status === 'completed' && certs.length > 0 && (

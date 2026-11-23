@@ -44,7 +44,11 @@ export default function IsgKatip() {
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>OSGB yetki hesabı</Text>
             <Text style={styles.dim}>
-              {s.katipSyncing ? 'Senkronize ediliyor…' : `Son senkronizasyon: ${formatDateTime(stats.last)}`}
+              {s.katipSyncing
+                ? 'Senkronize ediliyor…'
+                : stats.last
+                  ? `Son senkronizasyon: ${formatDateTime(stats.last)}`
+                  : 'Henüz senkronize edilmedi'}
             </Text>
           </View>
           <Pill label="Bağlı" tone="success" icon="link" />

@@ -58,15 +58,17 @@ export default function Dashboard() {
     const count = (h: string) => health.filter((x) => x === h).length;
 
     const compliances = s.firms.map((f) => ({ firm: f, value: firmCompliance(s, f.id) }));
-    const trainingCoverage = Math.round(compliances.reduce((a, c) => a + c.value, 0) / compliances.length);
+    const trainingCoverage = compliances.length
+      ? Math.round(compliances.reduce((a, c) => a + c.value, 0) / compliances.length)
+      : 0;
     const validRatio = Math.round(
       ((count('valid') + count('expiring')) /
         Math.max(1, count('valid') + count('expiring') + count('expired'))) *
         100,
     );
-    const katipOk = Math.round(
-      (s.firms.filter((f) => f.katip.status === 'synced').length / s.firms.length) * 100,
-    );
+    const katipOk = s.firms.length
+      ? Math.round((s.firms.filter((f) => f.katip.status === 'synced').length / s.firms.length) * 100)
+      : 0;
     const overall = Math.round(trainingCoverage * 0.5 + validRatio * 0.3 + katipOk * 0.2);
 
     // Son 6 ayda düzenlenen sertifikalar
@@ -231,6 +233,14 @@ export default function Dashboard() {
               {name} <Text style={styles.role}>· {user ? ROLE_LABELS[user.role] : ''}</Text>
             </Text>
           </View>
+          {isWide && (
+            <View style={styles.datePill}>
+              <Ionicons name="calendar-clear-outline" size={14} color={colors.amber} />
+              <Text style={styles.datePillText}>
+                {now.getDate()} {MONTHS_LONG[now.getMonth()]}, {DAYS_LONG[now.getDay()]}
+              </Text>
+            </View>
+          )}
           {/* Geniş ekranda arama, bildirim ve tema üst barda */}
           {!isWide && switchable && (
             <Pressable
@@ -273,12 +283,14 @@ export default function Dashboard() {
             </Pressable>
           )}
         </View>
-        <View style={styles.dateRow}>
-          <Ionicons name="calendar-clear-outline" size={14} color={colors.textDim} />
-          <Text style={styles.date}>
-            {now.getDate()} {MONTHS_LONG[now.getMonth()]}, {DAYS_LONG[now.getDay()]}
-          </Text>
-        </View>
+        {!isWide && (
+          <View style={styles.dateRow}>
+            <Ionicons name="calendar-clear-outline" size={14} color={colors.textDim} />
+            <Text style={styles.date}>
+              {now.getDate()} {MONTHS_LONG[now.getMonth()]}, {DAYS_LONG[now.getDay()]}
+            </Text>
+          </View>
+        )}
 
         {/* 1. satır: uyum skoru + bekleyen işler (bilgisayarda eşit yükseklik) */}
         <Columns gap={spacing.xl} style={isDesktop && { alignItems: 'stretch' }}>
@@ -296,7 +308,13 @@ export default function Dashboard() {
                 ))}
               </View>
               <View style={styles.heroTop}>
-                <View style={{ gap: 2 }}>
+                <View style={{ gap: 4 }}>
+                  <View style={styles.heroBadge}>
+                    <View style={styles.heroBadgeDot} />
+                    <Text style={styles.heroBadgeText}>
+                      {m.overall >= 85 ? 'İyi düzey' : m.overall >= 65 ? 'Geliştirilmeli' : 'Dikkat gerekli'}
+                    </Text>
+                  </View>
                   <Text style={styles.heroLabel}>Genel uyum skoru</Text>
                   <Text style={styles.heroValue}>%{m.overall}</Text>
                 </View>
@@ -336,18 +354,23 @@ export default function Dashboard() {
                     <Pressable
                       key={t.label}
                       onPress={() => router.push(t.href)}
-                      style={({ pressed }) => [
+                      style={({ pressed, hovered }) => [
                         styles.task,
                         isDesktop && { justifyContent: 'space-between', padding: spacing.lg },
-                        pressed && { opacity: 0.8 },
+                        !done && { borderTopWidth: 2, borderTopColor: tone.fg },
+                        hovered && styles.cardInteractiveHover,
+                        pressed && { opacity: 0.82 },
                       ]}
                       accessibilityRole="button"
                       accessibilityLabel={`${t.label.replace('\n', ' ')}: ${t.count}`}
                     >
-                      <View style={[styles.taskIcon, { backgroundColor: tone.bg }]}>
-                        <Ionicons name={done ? 'checkmark' : t.icon} size={16} color={tone.fg} />
+                      <View style={styles.taskHead}>
+                        <View style={[styles.taskIcon, { backgroundColor: tone.bg }]}>
+                          <Ionicons name={done ? 'checkmark' : t.icon} size={17} color={tone.fg} />
+                        </View>
+                        <Ionicons name="arrow-forward" size={14} color={colors.textDim} />
                       </View>
-                      <View>
+                      <View style={{ gap: 4 }}>
                         <Text
                           style={[styles.taskCount, !done && t.tone === 'danger' && { color: colors.danger }]}
                         >
@@ -364,23 +387,27 @@ export default function Dashboard() {
         </Columns>
 
         {/* KPI'lar */}
-        <View style={styles.grid}>
+        <View style={[styles.grid, isDesktop && styles.gridDesktop]}>
           {kpis.map((k) => (
             <Pressable
               key={k.label}
               onPress={() => router.push(k.href)}
-              style={({ pressed }) => [
+              style={({ pressed, hovered }) => [
                 styles.kpi,
-                isDesktop && { flexBasis: '22%' },
+                isDesktop && styles.kpiDesktop,
+                hovered && styles.cardInteractiveHover,
                 pressed && { opacity: 0.85 },
               ]}
             >
-              <View style={[styles.kpiIcon, { backgroundColor: TONES[k.tone].bg }]}>
-                <Ionicons
-                  name={k.icon}
-                  size={18}
-                  color={k.tone === 'neutral' ? colors.text : TONES[k.tone].fg}
-                />
+              <View style={styles.kpiTop}>
+                <View style={[styles.kpiIcon, { backgroundColor: TONES[k.tone].bg }]}>
+                  <Ionicons
+                    name={k.icon}
+                    size={18}
+                    color={k.tone === 'neutral' ? colors.text : TONES[k.tone].fg}
+                  />
+                </View>
+                <Ionicons name="chevron-forward" size={15} color={colors.textDim} />
               </View>
               <Text style={styles.kpiValue}>{k.value}</Text>
               <Text style={styles.kpiLabel}>{k.label}</Text>
@@ -613,8 +640,29 @@ const styles = StyleSheet.create({
   badgeText: { color: colors.onDanger, fontSize: 9.5, fontWeight: font.heavy },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -spacing.md },
   date: { color: colors.textDim, fontSize: 13, fontWeight: font.medium },
+  datePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    height: 36,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  datePillText: { color: colors.textMuted, fontSize: 13, fontWeight: font.semibold },
 
-  hero: { borderRadius: radius.xl, padding: spacing.xl, gap: spacing.xl, overflow: 'hidden' },
+  hero: {
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    gap: spacing.xl,
+    overflow: 'hidden',
+    shadowColor: colors.amber,
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+  },
   heroStripes: {
     position: 'absolute',
     top: -40,
@@ -626,50 +674,77 @@ const styles = StyleSheet.create({
   },
   heroStripe: { width: 12, height: 200, backgroundColor: colors.onAmber },
   heroTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  heroLabel: { color: 'rgba(10,10,11,0.7)', fontSize: 13, fontWeight: font.semibold },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(9,9,11,0.12)',
+    marginBottom: 4,
+  },
+  heroBadgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.onAmber },
+  heroBadgeText: { color: colors.onAmber, fontSize: 11, fontWeight: font.bold, letterSpacing: 0.2 },
+  heroLabel: { color: 'rgba(9,9,11,0.72)', fontSize: 13, fontWeight: font.semibold },
   heroValue: {
     color: colors.onAmber,
-    fontSize: 44,
-    lineHeight: 48,
+    fontSize: 46,
+    lineHeight: 50,
     fontWeight: font.heavy,
-    letterSpacing: -1.5,
+    letterSpacing: -1.6,
+    fontVariant: ['tabular-nums'],
   },
   heroIcon: {
     width: 50,
     height: 50,
-    borderRadius: 25,
+    borderRadius: 16,
     backgroundColor: colors.onAmber,
     alignItems: 'center',
     justifyContent: 'center',
   },
   barRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  barLabel: { color: 'rgba(10,10,11,0.78)', fontSize: 12.5, fontWeight: font.semibold },
-  barValue: { color: colors.onAmber, fontSize: 12.5, fontWeight: font.bold },
-  barTrack: { height: 6, borderRadius: 3, backgroundColor: 'rgba(10,10,11,0.15)', overflow: 'hidden' },
-  barFill: { height: '100%', borderRadius: 3, backgroundColor: colors.onAmber },
+  barLabel: { color: 'rgba(9,9,11,0.78)', fontSize: 12.5, fontWeight: font.semibold },
+  barValue: { color: colors.onAmber, fontSize: 12.5, fontWeight: font.bold, fontVariant: ['tabular-nums'] },
+  barTrack: { height: 7, borderRadius: 4, backgroundColor: 'rgba(9,9,11,0.15)', overflow: 'hidden' },
+  barFill: { height: '100%', borderRadius: 4, backgroundColor: colors.onAmber },
 
-  taskRow: { flexDirection: 'row', gap: spacing.sm + 2 },
+  cardInteractiveHover: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
+
+  taskRow: { flexDirection: 'row', gap: spacing.md },
   task: {
     flex: 1,
     padding: spacing.md,
-    gap: 4,
+    gap: spacing.sm,
     borderRadius: radius.lg,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
+  taskHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   taskIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 9,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 4,
   },
-  taskCount: { color: colors.white, fontSize: 22, fontWeight: font.heavy, letterSpacing: -0.5 },
-  taskLabel: { color: colors.textMuted, fontSize: 11.5, lineHeight: 15, fontWeight: font.medium },
+  taskCount: {
+    color: colors.white,
+    fontSize: 28,
+    fontWeight: font.heavy,
+    letterSpacing: -0.8,
+    fontVariant: ['tabular-nums'],
+  },
+  taskLabel: { color: colors.textMuted, fontSize: 12, lineHeight: 16, fontWeight: font.medium },
 
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  gridDesktop: { flexWrap: 'nowrap' },
   kpi: {
     flexBasis: '47%',
     flexGrow: 1,
@@ -679,33 +754,44 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     gap: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
   },
+  kpiDesktop: { flex: 1, flexBasis: 0, minWidth: 0 },
+  kpiTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md },
   kpiIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.md,
   },
-  kpiValue: { color: colors.white, fontSize: 28, fontWeight: font.heavy, letterSpacing: -0.8 },
-  kpiLabel: { color: colors.text, fontSize: 13, fontWeight: font.semibold },
+  kpiValue: {
+    color: colors.white,
+    fontSize: 30,
+    fontWeight: font.heavy,
+    letterSpacing: -0.9,
+    fontVariant: ['tabular-nums'],
+  },
+  kpiLabel: { color: colors.text, fontSize: 13.5, fontWeight: font.semibold },
   kpiHint: { color: colors.textDim, fontSize: 12, fontWeight: font.medium, marginTop: 2 },
 
   cardHead: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
-  cardTitle: { color: colors.white, fontSize: 16, fontWeight: font.bold },
+  cardTitle: { color: colors.white, fontSize: 16, fontWeight: font.bold, letterSpacing: -0.2 },
   cardSub: { color: colors.textDim, fontSize: 12.5, marginTop: 2, lineHeight: 17 },
   link: { color: colors.amber, fontSize: 13, fontWeight: font.semibold },
 
   riskTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   riskName: { flex: 1, color: colors.text, fontSize: 14.5, fontWeight: font.semibold },
   riskBar: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  riskValue: { color: colors.text, fontSize: 13, fontWeight: font.bold, width: 40, textAlign: 'right' },
+  riskValue: { color: colors.text, fontSize: 13, fontWeight: font.bold, width: 42, textAlign: 'right', fontVariant: ['tabular-nums'] },
 
   loadRow: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   barRowDark: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
   loadName: { flex: 1, color: colors.text, fontSize: 14, fontWeight: font.semibold },
-  loadPct: { color: colors.text, fontSize: 13, fontWeight: font.bold },
+  loadPct: { color: colors.text, fontSize: 13, fontWeight: font.bold, fontVariant: ['tabular-nums'] },
   loadRole: { color: colors.textDim, fontSize: 11.5 },
 
   notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

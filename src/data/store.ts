@@ -512,19 +512,44 @@ export const actions = {
   },
 
   updateMember(id: string, patch: Partial<Omit<TeamMember, 'id'>>) {
-    setState((s) => ({ team: s.team.map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
+    setState((s) => {
+      const prev = s.team.find((m) => m.id === id);
+      const nextTeam = s.team.map((m) => (m.id === id ? { ...m, ...patch } : m));
+      const affectsKatip =
+        prev &&
+        ((patch.certClass !== undefined && patch.certClass !== prev.certClass) ||
+          (patch.role !== undefined && patch.role !== prev.role));
+      return {
+        team: nextTeam,
+        firms: affectsKatip
+          ? s.firms.map((f) =>
+              f.specialistId === id || f.physicianId === id || f.dspId === id
+                ? { ...f, katip: { ...f.katip, status: 'pending', message: 'Uzman bilgisi değişikliği bildirilmeyi bekliyor.' } }
+                : f,
+            )
+          : s.firms,
+      };
+    });
   },
 
-  /** Ekip üyelerini siler; firmaya atanmış olanlar silinmez, nedeniyle döner */
+  /** Ekip üyelerini siler; firma, eğitim ataması veya sertifikaya bağlı olanlar silinmez, nedeniyle döner */
   deleteMembers(ids: string[]) {
     const blocked: { name: string; reason: string }[] = [];
     const ok: string[] = [];
     for (const id of ids) {
       const m = state.team.find((x) => x.id === id);
       if (!m) continue;
-      const firms = state.firms.filter((f) => f.specialistId === id || f.physicianId === id || f.dspId === id);
-      if (firms.length) blocked.push({ name: m.name, reason: `${firms.length} firmaya atanmış` });
-      else ok.push(id);
+      const f = state.firms.filter((x) => x.specialistId === id || x.physicianId === id || x.dspId === id).length;
+      const a = state.assignments.filter((x) => x.trainerId === id).length;
+      const c = state.certificates.filter((x) => x.trainerId === id).length;
+      if (f || a || c) {
+        blocked.push({
+          name: m.name,
+          reason: [f && `${f} firma`, a && `${a} atama`, c && `${c} sertifika`].filter(Boolean).join(', '),
+        });
+      } else {
+        ok.push(id);
+      }
     }
     const set = new Set(ok);
     setState((s) => ({ team: s.team.filter((m) => !set.has(m.id)) }));
@@ -657,35 +682,44 @@ export const actions = {
     }));
   },
 
-  /** İSG-KATİP senkronizasyonu (simülasyon) */
+  /** İSG-KATİP senkronizasyonu (simülasyon — uzman sınıfı uygunluğunu doğrular) */
   async syncKatip() {
     if (state.katipSyncing) return;
     setState(() => ({ katipSyncing: true }));
     await new Promise((r) => setTimeout(r, 1800));
     const now = new Date().toISOString();
-    const pending = state.firms.filter((f) => f.katip.status === 'pending');
-    const errors = state.firms.filter((f) => f.katip.status === 'error');
+    const pendingCount = state.firms.filter((f) => f.katip.status === 'pending').length;
+    const errors: { name: string; message: string }[] = [];
+    const nextFirms = state.firms.map((f) => {
+      const spec = state.team.find((m) => m.id === f.specialistId);
+      const invalid = !spec || spec.role !== 'specialist' || !classAllowed(spec.certClass, f.hazard);
+      if (invalid) {
+        const required = f.hazard === 'cok' ? 'A' : 'A veya B';
+        const message = !spec
+          ? 'Atanmış İSG uzmanı bulunamadı.'
+          : `${HAZARD_LABEL[f.hazard]} işyerine ${spec.certClass ?? 'sınıfsız'} sınıfı uzman atanamaz. ${required} sınıfı uzman atayın.`;
+        errors.push({ name: f.name, message });
+        return { ...f, katip: { ...f.katip, status: 'error' as const, lastSync: now, message } };
+      }
+      return { ...f, katip: { ...f.katip, status: 'synced' as const, lastSync: now, message: undefined } };
+    });
     const logs: KatipLog[] = [
       {
         id: newId('l'),
         at: now,
-        text: `${state.firms.length - errors.length} sözleşme doğrulandı${pending.length ? `, ${pending.length} bildirim gönderildi` : ''}`,
+        text: `${nextFirms.length - errors.length} sözleşme doğrulandı${pendingCount ? `, ${pendingCount} bildirim işlendi` : ''}`,
         tone: 'success',
       },
-      ...errors.map<KatipLog>((f) => ({
+      ...errors.map<KatipLog>((e) => ({
         id: newId('l'),
         at: now,
-        text: `${f.name}: ${f.katip.message ?? 'hata'}`,
+        text: `${e.name}: ${e.message}`,
         tone: 'danger',
       })),
     ];
     setState((s) => ({
       katipSyncing: false,
-      firms: s.firms.map((f) =>
-        f.katip.status === 'error'
-          ? { ...f, katip: { ...f.katip, lastSync: now } }
-          : { ...f, katip: { ...f.katip, status: 'synced', lastSync: now, message: undefined } },
-      ),
+      firms: nextFirms,
       katipLogs: [...logs, ...s.katipLogs].slice(0, 12),
     }));
   },
@@ -740,7 +774,9 @@ export function latestCertificates(certs: Certificate[]) {
 export function firmCompliance(s: State, firmId: string) {
   const people = s.participants.filter((p) => p.firmId === firmId);
   if (!people.length) return 0;
-  const latest = latestCertificates(s.certificates.filter((c) => c.firmId === firmId && c.trainingId === 'tr1'));
+  const core = s.trainings.find((t) => t.id === 'tr1') ?? s.trainings.find((t) => t.category === 'Zorunlu');
+  if (!core) return 0;
+  const latest = latestCertificates(s.certificates.filter((c) => c.firmId === firmId && c.trainingId === core.id));
   const ok = people.filter((p) =>
     latest.some((c) => c.participantId === p.id && ['valid', 'expiring'].includes(certHealth(c))),
   ).length;
@@ -773,7 +809,7 @@ export function memberLoad(s: State, m: TeamMember) {
 
 /** İSG uzmanı sınıfının tehlike sınıfına uygunluğu */
 export function classAllowed(certClass: TeamMember['certClass'], hazard: HazardClass) {
-  if (!certClass) return true;
+  if (!certClass) return false;
   if (hazard === 'cok') return certClass === 'A';
   if (hazard === 'tehlikeli') return certClass === 'A' || certClass === 'B';
   return true;

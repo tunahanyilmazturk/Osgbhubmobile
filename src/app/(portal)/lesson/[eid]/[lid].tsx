@@ -25,8 +25,20 @@ export default function LessonScreen() {
 
   const saved = item?.e.lessonProgress[lid ?? ''] ?? {};
   const slides = lesson?.slides ?? [];
-  const [index, setIndex] = useState(() => Math.min(saved.slide ?? 0, Math.max(0, slides.length - 1)));
+  const clampSlide = (n: number) => Math.min(n, Math.max(0, slides.length - 1));
+  const lessonKey = `${eid ?? ''}:${lid ?? ''}`;
+  const [prevKey, setPrevKey] = useState(lessonKey);
+  const [index, setIndex] = useState(() => clampSlide(saved.slide ?? 0));
+  const [maxSlide, setMaxSlide] = useState(() => clampSlide(saved.slide ?? 0));
   const [watched, setWatched] = useState(saved.watched ?? 0);
+
+  if (prevKey !== lessonKey) {
+    setPrevKey(lessonKey);
+    const nextSlide = clampSlide(saved.slide ?? 0);
+    setIndex(nextSlide);
+    setMaxSlide(nextSlide);
+    setWatched(saved.watched ?? 0);
+  }
 
   if (!item || !lesson || !step) {
     return (
@@ -48,7 +60,7 @@ export default function LessonScreen() {
 
   const finish = () => {
     actions.completeLesson(e.id, lesson.id);
-    goBack();
+    goBack(`/course/${e.id}`);
   };
 
   /* ---------------- Video ders ---------------- */
@@ -102,8 +114,10 @@ export default function LessonScreen() {
   const slide = slides[index];
   const last = index >= slides.length - 1;
   const go = (i: number) => {
-    setIndex(i);
-    actions.saveLessonProgress(e.id, lesson.id, { slide: i });
+    const next = Math.max(0, Math.min(slides.length - 1, i));
+    setIndex(next);
+    setMaxSlide((m) => Math.max(m, next));
+    actions.saveLessonProgress(e.id, lesson.id, { slide: next });
   };
   const bullets = (slide?.body ?? '').split('\n').filter((x) => x.trim());
 
@@ -143,15 +157,24 @@ export default function LessonScreen() {
 
       {/* Slayt noktaları */}
       <View style={styles.dots}>
-        {slides.map((s, i) => (
-          <Pressable
-            key={s.id}
-            onPress={() => go(i)}
-            hitSlop={6}
-            accessibilityLabel={`Slayt ${i + 1}`}
-            style={[styles.navDot, i === index && styles.navDotOn, i < index && { backgroundColor: colors.amberDeep }]}
-          />
-        ))}
+        {slides.map((s, i) => {
+          const lockedDot = !already && i > maxSlide + 1;
+          return (
+            <Pressable
+              key={s.id}
+              disabled={lockedDot}
+              onPress={() => go(i)}
+              hitSlop={6}
+              accessibilityLabel={`Slayt ${i + 1}`}
+              style={[
+                styles.navDot,
+                i === index && styles.navDotOn,
+                i < index && { backgroundColor: colors.amberDeep },
+                lockedDot && { opacity: 0.35 },
+              ]}
+            />
+          );
+        })}
       </View>
 
       <View style={styles.nav}>

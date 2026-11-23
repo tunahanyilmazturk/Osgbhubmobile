@@ -87,7 +87,7 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
       {/* Kenar çizgisindeki daraltma butonu */}
       <Pressable
         onPress={() => setCollapsed((x) => !x)}
-        style={styles.edgeBtn}
+        style={({ hovered }) => [styles.edgeBtn, hovered && styles.edgeBtnHover]}
         hitSlop={8}
         accessibilityRole="button"
         accessibilityLabel={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
@@ -118,12 +118,24 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
       {variant === 'staff' && (
         <Pressable
           onPress={() => router.push('/assignment/new')}
-          style={({ pressed }) => [styles.cta, collapsed && styles.ctaCollapsed, pressed && { opacity: 0.85 }]}
+          style={({ pressed, hovered }) => [
+            styles.ctaWrap,
+            collapsed && styles.ctaCollapsed,
+            hovered && { opacity: 0.94 },
+            pressed && { opacity: 0.84 },
+          ]}
           accessibilityRole="button"
           accessibilityLabel="Eğitim ata"
         >
-          <Ionicons name="add-circle" size={collapsed ? 22 : 18} color={colors.onAmber} />
-          {!collapsed && <Text style={styles.ctaText}>Eğitim ata</Text>}
+          <LinearGradient
+            colors={[colors.amberLight, colors.amber, colors.amberDark]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cta}
+          >
+            <Ionicons name="add-circle" size={collapsed ? 22 : 18} color={colors.onAmber} />
+            {!collapsed && <Text style={styles.ctaText}>Eğitim ata</Text>}
+          </LinearGradient>
         </Pressable>
       )}
 
@@ -163,7 +175,13 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
             </View>
           )}
         </Pressable>
-        <Pressable onPress={signOut} hitSlop={8} style={styles.logout} accessibilityRole="button" accessibilityLabel="Çıkış yap">
+        <Pressable
+          onPress={signOut}
+          hitSlop={8}
+          style={({ hovered }) => [styles.logout, hovered && { backgroundColor: colors.dangerSoft }]}
+          accessibilityRole="button"
+          accessibilityLabel="Çıkış yap"
+        >
           <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
         </Pressable>
       </View>
@@ -233,14 +251,37 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  edgeBtnHover: { borderColor: colors.amber, backgroundColor: colors.surface },
+  ctaWrap: {
+    borderRadius: radius.md,
+    overflow: 'hidden',
+    shadowColor: colors.amber,
+    shadowOpacity: 0.28,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
   },
   ctaCollapsed: { width: 44, height: 44, alignSelf: 'center', borderRadius: 14 },
   sectionLine: { height: 1, backgroundColor: colors.border, marginHorizontal: spacing.sm, marginVertical: spacing.sm },
   itemCollapsed: { justifyContent: 'center', paddingHorizontal: 0, height: 44 },
   dot: { position: 'absolute', top: 9, right: 12, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: colors.bgElevated },
-  userCollapsed: { flexDirection: 'column', paddingVertical: spacing.sm, backgroundColor: 'transparent' },
+  userCollapsed: { flexDirection: 'column', paddingVertical: spacing.sm, backgroundColor: 'transparent', borderWidth: 0 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.sm },
-  logo: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  logo: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.amber,
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+  },
   brandName: { color: colors.white, fontSize: 18, fontWeight: font.heavy, letterSpacing: -0.4 },
   brandCaption: { color: colors.textDim, fontSize: 9, fontWeight: font.semibold, letterSpacing: 1.3 },
   cta: {
@@ -248,16 +289,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    height: 42,
-    borderRadius: radius.md,
-    backgroundColor: colors.amber,
+    height: 44,
+    paddingHorizontal: spacing.md,
   },
-  ctaText: { color: colors.onAmber, fontSize: 14, fontWeight: font.bold },
+  ctaText: { color: colors.onAmber, fontSize: 14, fontWeight: font.bold, letterSpacing: 0.2 },
   sectionTitle: {
     color: colors.textDim,
-    fontSize: 11,
+    fontSize: 10.5,
     fontWeight: font.bold,
-    letterSpacing: 0.8,
+    letterSpacing: 1,
     textTransform: 'uppercase',
     paddingHorizontal: spacing.md,
     marginBottom: 4,
@@ -269,9 +309,11 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: spacing.md,
     borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: 'transparent',
   },
   itemHover: { backgroundColor: colors.surface },
-  itemActive: { backgroundColor: colors.amberSoft },
+  itemActive: { backgroundColor: colors.amberSoft, borderColor: colors.amberBorder },
   activeBar: {
     position: 'absolute',
     left: -spacing.md,
@@ -291,7 +333,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: colors.onDanger, fontSize: 11, fontWeight: font.heavy },
+  badgeText: { color: colors.onDanger, fontSize: 11, fontWeight: font.heavy, fontVariant: ['tabular-nums'] },
   user: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -299,6 +341,8 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: radius.md,
     backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   userMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   userName: { color: colors.white, fontSize: 14, fontWeight: font.semibold },
@@ -306,7 +350,7 @@ const styles = StyleSheet.create({
   logout: {
     width: 34,
     height: 34,
-    borderRadius: 17,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },

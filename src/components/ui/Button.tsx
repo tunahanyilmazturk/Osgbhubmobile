@@ -51,14 +51,16 @@ export function Button({ title, variant = 'primary', loading, icon, disabled, co
         accessibilityRole="button"
         accessibilityState={{ disabled: !!disabled || !!loading, busy: !!loading }}
         disabled={disabled || loading}
-        onPressIn={() => animate(0.97)}
+        onPressIn={() => animate(0.98)}
         onPressOut={() => animate(1)}
-        style={[
+        style={({ hovered }) => [
           styles.base,
-          compact && { height: 48 },
+          compact && { height: 46 },
           !isPrimary && styles.outline,
+          !isPrimary && hovered && !disabled && styles.outlineHover,
           isPrimary && styles.primaryShadow,
-          (disabled || loading) && { opacity: 0.85 },
+          isPrimary && hovered && !disabled && { opacity: 0.94 },
+          (disabled || loading) && { opacity: 0.48 },
         ]}
         {...rest}
       >
@@ -98,6 +100,10 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
     backgroundColor: colors.bgElevated,
+  },
+  outlineHover: {
+    borderColor: colors.borderStrong,
+    backgroundColor: colors.surface,
   },
   content: {
     flexDirection: 'row',

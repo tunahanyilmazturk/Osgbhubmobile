@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
@@ -29,12 +29,14 @@ export default function ExamScreen() {
   const [result, setResult] = useState<Result | null>(null);
   const [remaining, setRemaining] = useState(0);
   const startedAt = useRef(0);
+  const submittedRef = useRef(false);
 
   const exam = item ? (kind === 'pre' ? item.training.content.preTest : item.training.content.finalExam) : undefined;
   const questions = exam?.questions ?? [];
 
   const submit = () => {
-    if (!item) return;
+    if (!item || submittedRef.current) return;
+    submittedRef.current = true;
     setConfirm(false);
     const r = actions.submitExam(item.e.id, kind, answers, (nowMs() - startedAt.current) / 1000);
     if (r) {
@@ -45,8 +47,32 @@ export default function ExamScreen() {
           r.passed === false ? Haptics.NotificationFeedbackType.Error : Haptics.NotificationFeedbackType.Success,
         );
       }
+    } else {
+      submittedRef.current = false;
     }
   };
+
+  // Sınav sürerken Android geri tuşu ve web sayfa terkine karşı koruma
+  useEffect(() => {
+    if (phase !== 'exam') return;
+    const backSub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setConfirm(true);
+      return true;
+    });
+    const onBeforeUnload = (ev: BeforeUnloadEvent) => {
+      ev.preventDefault();
+      ev.returnValue = '';
+    };
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', onBeforeUnload);
+    }
+    return () => {
+      backSub.remove();
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.removeEventListener('beforeunload', onBeforeUnload);
+      }
+    };
+  }, [phase]);
 
   // Süre sınırı: sıfırlanınca otomatik teslim
   const submitRef = useRef<() => void>(() => {});
@@ -142,7 +168,7 @@ export default function ExamScreen() {
             }}
           />
         ) : null}
-        <Button title="Eğitime dön" variant={isFinal && passed ? 'outline' : kind === 'pre' ? 'primary' : 'outline'} icon="arrow-back" onPress={goBack} />
+        <Button title="Eğitime dön" variant={isFinal && passed ? 'outline' : kind === 'pre' ? 'primary' : 'outline'} icon="arrow-back" onPress={() => goBack(`/course/${e.id}`)} />
       </Screen>
     );
   }
@@ -162,6 +188,7 @@ export default function ExamScreen() {
               : null;
 
   const begin = () => {
+    submittedRef.current = false;
     startedAt.current = nowMs();
     setRemaining((exam?.timeLimit ?? 0) * 60);
     setAnswers(questions.map(() => -1));

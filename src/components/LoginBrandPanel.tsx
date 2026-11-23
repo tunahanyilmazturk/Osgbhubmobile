@@ -32,11 +32,16 @@ export function LoginBrandPanel() {
       <BrandMark />
 
       <View style={{ gap: spacing.xxl, maxWidth: 520 }}>
-        <Text style={styles.headline}>
-          İSG süreçleriniz{'\n'}
-          <Text style={{ color: colors.amber }}>tek panelde.</Text>
-        </Text>
-        <View style={{ gap: spacing.lg }}>
+        <View style={{ gap: spacing.md }}>
+          <Text style={styles.headline}>
+            İSG süreçleriniz{'\n'}
+            <Text style={{ color: colors.amber }}>tek panelde.</Text>
+          </Text>
+          <Text style={styles.lead}>
+            Firmalar, eğitimler, e-imzalı sertifikalar ve İSG-KATİP uyumu için modern operasyon merkezi.
+          </Text>
+        </View>
+        <View style={{ gap: spacing.sm + 2 }}>
           {FEATURES.map((f) => (
             <View key={f.title} style={styles.feature}>
               <View style={styles.featureIcon}>
@@ -51,7 +56,17 @@ export function LoginBrandPanel() {
         </View>
       </View>
 
-      <Text style={styles.copy}>© {new Date().getFullYear()} OSGB Hub</Text>
+      <View style={styles.footer}>
+        <View style={styles.badges}>
+          {['6331 Sayılı Kanun', 'İSG-KATİP', '5070 E-İmza'].map((b) => (
+            <View key={b} style={styles.badge}>
+              <View style={styles.badgeDot} />
+              <Text style={styles.badgeText}>{b}</Text>
+            </View>
+          ))}
+        </View>
+        <Text style={styles.copy}>© {new Date().getFullYear()} OSGB Hub</Text>
+      </View>
     </LinearGradient>
   );
 }
@@ -76,18 +91,43 @@ const styles = StyleSheet.create({
   },
   stripe: { width: 22, height: 520, backgroundColor: colors.amber, borderRadius: 2 },
   headline: { color: colors.white, fontSize: 48, lineHeight: 54, fontWeight: font.heavy, letterSpacing: -1.6 },
-  feature: { flexDirection: 'row', alignItems: 'center', gap: spacing.lg },
+  lead: { color: colors.textMuted, fontSize: 15.5, lineHeight: 23, maxWidth: 440 },
+  feature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   featureIcon: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: radius.md,
     backgroundColor: colors.amberSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255,176,32,0.25)',
+    borderColor: colors.amberBorder,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  featureTitle: { color: colors.white, fontSize: 16, fontWeight: font.bold },
-  featureText: { color: colors.textMuted, fontSize: 14, marginTop: 2 },
+  featureTitle: { color: colors.white, fontSize: 15, fontWeight: font.bold },
+  featureText: { color: colors.textMuted, fontSize: 13.5, marginTop: 2 },
+  footer: { gap: spacing.md },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.pill,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.amber },
+  badgeText: { color: colors.textMuted, fontSize: 11.5, fontWeight: font.semibold },
   copy: { color: colors.textDim, fontSize: 12.5 },
 });

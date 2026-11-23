@@ -5,7 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { ThemeSwitchCard } from '@/components/ThemeSwitchCard';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
-import { Avatar, Card, InfoRow, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
+import { Avatar, Card, EmptyState, InfoRow, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
 import { actions } from '@/data/store';
 import { formatDateTime } from '@/lib/format';
 import { useParticipant } from '@/lib/portal';
@@ -19,7 +19,18 @@ export default function Account() {
   const [pw2, setPw2] = useState('');
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
-  if (!participant) return null;
+  if (!participant) {
+    return (
+      <Screen tabBar header={<ScreenHeader title="Hesabım" back={false} large />}>
+        <EmptyState
+          icon="person-outline"
+          title="Katılımcı kaydı bulunamadı"
+          text="Oturumunuz geçersiz olabilir. Tekrar giriş yapmak için çıkış yapın."
+        />
+        <Button title="Çıkış yap" variant="outline" icon="log-out-outline" onPress={signOut} />
+      </Screen>
+    );
+  }
   const acc = participant.account;
 
   const save = () => {

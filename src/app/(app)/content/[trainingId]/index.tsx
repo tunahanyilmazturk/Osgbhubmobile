@@ -21,10 +21,49 @@ import { actions, useAppState } from '@/data/store';
 import type { Training } from '@/data/types';
 import { colors, font, radius, spacing } from '@/theme';
 
-const num = (v: string, fallback = 0) => {
-  const n = parseInt(v.replace(/\D/g, ''), 10);
-  return Number.isFinite(n) ? n : fallback;
-};
+function NumberField({
+  label,
+  value,
+  min = 1,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  min?: number;
+  max?: number;
+  onChange: (n: number) => void;
+}) {
+  const [prevValue, setPrevValue] = useState(value);
+  const [text, setText] = useState(String(value));
+  if (prevValue !== value) {
+    setPrevValue(value);
+    setText(String(value));
+  }
+
+  const clamp = (n: number) => Math.max(min, max !== undefined ? Math.min(max, n) : n);
+
+  return (
+    <Field
+      label={label}
+      value={text}
+      keyboardType="number-pad"
+      onChangeText={(v) => {
+        const clean = v.replace(/\D/g, '');
+        setText(clean);
+        if (!clean) return;
+        const parsed = parseInt(clean, 10);
+        if (Number.isFinite(parsed)) onChange(clamp(parsed));
+      }}
+      onBlur={() => {
+        const parsed = parseInt(text, 10);
+        const next = Number.isFinite(parsed) ? clamp(parsed) : value;
+        setText(String(next));
+        if (next !== value) onChange(next);
+      }}
+    />
+  );
+}
 
 /** Yönetici: online eğitim içerik editörü */
 export default function ContentEditor() {
@@ -65,14 +104,15 @@ export default function ContentEditor() {
             </View>
             <View style={styles.pair}>
               <View style={{ flex: 1 }}>
-                <Field label="Süre (saat)" value={String(t.hours)} keyboardType="number-pad" onChangeText={(v) => up({ hours: num(v, 1) })} />
+                <NumberField label="Süre (saat)" value={t.hours} min={1} max={200} onChange={(hours) => up({ hours })} />
               </View>
               <View style={{ flex: 1 }}>
-                <Field
+                <NumberField
                   label="Geçerlilik (ay)"
-                  value={String(t.validityMonths)}
-                  keyboardType="number-pad"
-                  onChangeText={(v) => up({ validityMonths: num(v, 12) })}
+                  value={t.validityMonths}
+                  min={1}
+                  max={120}
+                  onChange={(validityMonths) => up({ validityMonths })}
                 />
               </View>
             </View>
@@ -89,19 +129,21 @@ export default function ContentEditor() {
           <Card style={{ gap: spacing.lg }}>
             <View style={styles.pair}>
               <View style={{ flex: 1 }}>
-                <Field
+                <NumberField
                   label="Geçme notu (%)"
-                  value={String(c.passScore)}
-                  keyboardType="number-pad"
-                  onChangeText={(v) => up({ content: { passScore: Math.min(100, num(v, 70)) } })}
+                  value={c.passScore}
+                  min={1}
+                  max={100}
+                  onChange={(passScore) => up({ content: { passScore } })}
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Field
+                <NumberField
                   label="Final deneme hakkı"
-                  value={String(c.maxAttempts)}
-                  keyboardType="number-pad"
-                  onChangeText={(v) => up({ content: { maxAttempts: Math.max(1, num(v, 3)) } })}
+                  value={c.maxAttempts}
+                  min={1}
+                  max={20}
+                  onChange={(maxAttempts) => up({ content: { maxAttempts } })}
                 />
               </View>
             </View>

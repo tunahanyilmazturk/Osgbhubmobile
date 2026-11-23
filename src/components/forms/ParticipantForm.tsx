@@ -7,7 +7,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { DateField, FormActions, FormError, SelectField } from '@/components/ui/forms';
-import { Card, Checkbox, Screen, ScreenHeader } from '@/components/ui/kit';
+import { Card, Checkbox, EmptyState, Screen, ScreenHeader } from '@/components/ui/kit';
 import { actions, useAppState } from '@/data/store';
 import { daysFromNow } from '@/lib/format';
 import { colors, font, spacing } from '@/theme';
@@ -26,6 +26,14 @@ export function ParticipantForm({ id, firmId }: { id?: string; firmId?: string }
   const [error, setError] = useState<string | null>(null);
   const [creds, setCreds] = useState<{ id: string; c: Credential } | null>(null);
   const [confirm, setConfirm] = useState(false);
+
+  if (id && !existing) {
+    return (
+      <Screen header={<ScreenHeader title="Katılımcı" />}>
+        <EmptyState icon="person" title="Katılımcı bulunamadı" />
+      </Screen>
+    );
+  }
 
   const save = () => {
     if (!name.trim() || name.trim().split(/\s+/).length < 2) return setError('Ad ve soyad girin.');

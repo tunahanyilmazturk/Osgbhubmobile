@@ -52,7 +52,7 @@ export function BarChart({
 
           <View style={ch.bars}>
             {data.map((d, i) => {
-              const h = Math.max(2, (d.value / top) * (height - 1));
+              const h = Math.max(4, (d.value / top) * (height - 22));
               const active = i === selected;
               return (
                 <Pressable
@@ -63,12 +63,27 @@ export function BarChart({
                   accessibilityLabel={`${d.detail ?? d.label}: ${d.value} ${unit}`}
                   accessibilityState={{ selected: active }}
                 >
-                  <View
-                    style={[
-                      ch.bar,
-                      { height: h, backgroundColor: active ? colors.amber : 'rgba(255,176,32,0.35)' },
-                    ]}
-                  />
+                  {({ hovered }) => (
+                    <>
+                      <Text style={[ch.barVal, active ? { color: colors.amber, opacity: 1 } : hovered && { opacity: 0.75 }]}>
+                        {d.value}
+                      </Text>
+                      <View
+                        style={[
+                          ch.bar,
+                          {
+                            height: h,
+                            backgroundColor: active
+                              ? colors.amber
+                              : hovered
+                                ? 'rgba(255,176,32,0.58)'
+                                : 'rgba(255,176,32,0.32)',
+                          },
+                          active && ch.barActive,
+                        ]}
+                      />
+                    </>
+                  )}
                 </Pressable>
               );
             })}
@@ -137,23 +152,30 @@ export function StatusDistribution({ segments }: { segments: Segment[] }) {
 
 const ch = StyleSheet.create({
   readout: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
-  readoutValue: { color: colors.white, fontSize: 26, fontWeight: font.heavy, letterSpacing: -0.6 },
+  readoutValue: { color: colors.white, fontSize: 28, fontWeight: font.heavy, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
   readoutUnit: { color: colors.textMuted, fontSize: 13, fontWeight: font.semibold },
   readoutLabel: { color: colors.textDim, fontSize: 12.5, fontWeight: font.medium },
 
   axis: { width: 28, justifyContent: 'space-between', paddingBottom: 0, marginTop: -6, marginBottom: -6 },
-  axisText: { color: colors.textDim, fontSize: 10, fontWeight: font.medium },
+  axisText: { color: colors.textDim, fontSize: 10.5, fontWeight: font.medium, fontVariant: ['tabular-nums'] },
   grid: { position: 'absolute', left: 0, right: 0, height: 1, backgroundColor: colors.border, opacity: 0.6 },
   baseline: { opacity: 1, backgroundColor: colors.borderStrong },
   bars: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'flex-end' },
-  col: { flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 1 },
-  bar: { width: '62%', maxWidth: 34, borderTopLeftRadius: 4, borderTopRightRadius: 4 },
-  xLabel: { flex: 1, textAlign: 'center', color: colors.textDim, fontSize: 11, fontWeight: font.medium },
+  col: { flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center', paddingHorizontal: 2, gap: 4 },
+  barVal: { color: colors.textMuted, fontSize: 10.5, fontWeight: font.bold, opacity: 0, fontVariant: ['tabular-nums'] },
+  bar: { width: '64%', maxWidth: 38, borderTopLeftRadius: 6, borderTopRightRadius: 6 },
+  barActive: {
+    shadowColor: colors.amber,
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  xLabel: { flex: 1, textAlign: 'center', color: colors.textDim, fontSize: 11.5, fontWeight: font.medium },
 
-  stack: { flexDirection: 'row', height: 12, gap: 2 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  stack: { flexDirection: 'row', height: 14, gap: 3 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 2 },
   legendSwatch: { width: 10, height: 10, borderRadius: 3 },
   legendLabel: { flex: 1, color: colors.text, fontSize: 13.5, fontWeight: font.medium },
-  legendValue: { color: colors.text, fontSize: 13.5, fontWeight: font.bold, minWidth: 28, textAlign: 'right' },
-  legendPct: { color: colors.textDim, fontSize: 12, fontWeight: font.medium, width: 38, textAlign: 'right' },
+  legendValue: { color: colors.text, fontSize: 13.5, fontWeight: font.bold, minWidth: 30, textAlign: 'right', fontVariant: ['tabular-nums'] },
+  legendPct: { color: colors.textDim, fontSize: 12, fontWeight: font.medium, width: 40, textAlign: 'right', fontVariant: ['tabular-nums'] },
 });

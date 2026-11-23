@@ -6,7 +6,7 @@ import { BottomSheet } from '@/components/ui/BottomSheet';
 import { Button } from '@/components/ui/Button';
 import { Field } from '@/components/ui/Field';
 import { FormActions, FormError } from '@/components/ui/forms';
-import { Card, Chips, Screen, ScreenHeader } from '@/components/ui/kit';
+import { Card, Chips, EmptyState, Screen, ScreenHeader } from '@/components/ui/kit';
 import { actions, memberFirms, useAppState } from '@/data/store';
 import type { TeamMember, TeamRole } from '@/data/types';
 import { colors, spacing } from '@/theme';
@@ -22,18 +22,37 @@ export function MemberForm({ id }: { id?: string }) {
   const [confirm, setConfirm] = useState(false);
   const set = <K extends keyof typeof d>(k: K, v: (typeof d)[K]) => setD((x) => ({ ...x, [k]: v }));
 
+  if (id && !existing) {
+    return (
+      <Screen header={<ScreenHeader title="Ekip üyesi" />}>
+        <EmptyState icon="people-circle" title="Ekip üyesi bulunamadı" />
+      </Screen>
+    );
+  }
+
+  const firms = existing ? memberFirms(s, existing) : [];
+  const assignmentsCount = existing ? s.assignments.filter((a) => a.trainerId === existing.id).length : 0;
+  const certsCount = existing ? s.certificates.filter((c) => c.trainerId === existing.id).length : 0;
+  const blocked = firms.length > 0 || assignmentsCount > 0 || certsCount > 0;
+
   const save = () => {
     if (!d.name.trim()) return setError('Ad soyad girin.');
     if (!d.certNo.trim()) return setError('Belge numarası girin.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(d.email.trim())) return setError('Geçerli bir e-posta girin.');
     if (d.phone.replace(/\D/g, '').length < 10) return setError('Geçerli bir telefon girin.');
-    const data = { ...d, name: d.name.trim(), email: d.email.trim(), certClass: d.role === 'specialist' ? d.certClass : undefined };
+    if (existing && firms.length && d.role !== existing.role) {
+      return setError(`Bu kişi ${firms.length} firmaya atanmış. Görevini değiştirmeden önce firma atamalarını güncelleyin.`);
+    }
+    const data = {
+      ...d,
+      name: d.name.trim(),
+      email: d.email.trim(),
+      certClass: d.role === 'specialist' ? (d.certClass ?? 'C') : undefined,
+    };
     if (existing) actions.updateMember(existing.id, data);
     else actions.createMember(data);
     router.replace('/team');
   };
-
-  const firms = existing ? memberFirms(s, existing) : [];
 
   return (
     <Screen header={<ScreenHeader title={existing ? 'Ekip üyesini düzenle' : 'Yeni ekip üyesi'} subtitle={existing?.name} />}>
@@ -43,7 +62,7 @@ export function MemberForm({ id }: { id?: string }) {
           <Text style={{ color: colors.textMuted, fontSize: 13 }}>Görev *</Text>
           <Chips<TeamRole>
             value={d.role}
-            onChange={(v) => set('role', v)}
+            onChange={(v) => setD((x) => ({ ...x, role: v, certClass: v === 'specialist' ? (x.certClass ?? 'C') : undefined }))}
             options={[
               { value: 'specialist', label: 'İSG uzmanı' },
               { value: 'physician', label: 'İşyeri hekimi' },
@@ -83,15 +102,21 @@ export function MemberForm({ id }: { id?: string }) {
         <BottomSheet
           visible={confirm}
           onClose={() => setConfirm(false)}
-          title={firms.length ? 'Silinemez' : 'Ekip üyesi silinsin mi?'}
+          title={blocked ? 'Silinemez' : 'Ekip üyesi silinsin mi?'}
           subtitle={
-            firms.length
-              ? `${existing.name} şu an ${firms.length} firmaya atanmış (${firms.map((f) => f.name).join(', ')}). Önce bu firmalara başka bir kişi atayın.`
+            blocked
+              ? `${existing.name} bağlı kayıtlarda kullanılıyor (${[
+                  firms.length && `${firms.length} firma`,
+                  assignmentsCount && `${assignmentsCount} eğitim ataması`,
+                  certsCount && `${certsCount} sertifika`,
+                ]
+                  .filter(Boolean)
+                  .join(', ')}). Önce bağlı kayıtları güncelleyin.`
               : `${existing.name} kalıcı olarak silinecek.`
           }
         >
           <View style={{ gap: spacing.sm }}>
-            {!firms.length && (
+            {!blocked && (
               <Button
                 title="Kalıcı olarak sil"
                 icon="trash-outline"
@@ -102,7 +127,7 @@ export function MemberForm({ id }: { id?: string }) {
                 }}
               />
             )}
-            <Button title={firms.length ? 'Tamam' : 'Vazgeç'} variant="outline" onPress={() => setConfirm(false)} />
+            <Button title={blocked ? 'Tamam' : 'Vazgeç'} variant="outline" onPress={() => setConfirm(false)} />
           </View>
         </BottomSheet>
       )}
