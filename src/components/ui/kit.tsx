@@ -471,7 +471,8 @@ const s = StyleSheet.create({
     minWidth: 0,
     height: '100%',
     color: colors.text,
-    fontSize: 15,
+    // iOS Safari 16px altındaki alanlarda odaklanınca sayfayı yakınlaştırır
+    fontSize: 16,
     outlineStyle: 'none',
   } as object,
 

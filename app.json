@@ -22,7 +22,9 @@
       "favicon": "./assets/favicon.png",
       "output": "single",
       "name": "OSGB Hub",
-      "themeColor": "#0A0A0B"
+      "themeColor": "#0A0A0B",
+      "lang": "tr",
+      "description": "OSGB Hub — İş sağlığı ve güvenliği yönetim platformu: firmalar, eğitimler, sertifikalar, e-imza ve İSG-KATİP."
     },
     "plugins": [
       "expo-router"

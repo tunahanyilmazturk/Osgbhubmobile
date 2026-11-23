@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <!-- viewport-fit=cover: iPhone çentik/ana çubuk alanları env(safe-area-inset-*) ile yönetilir -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="OSGB Hub" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>%WEB_TITLE%</title>
+    <!-- react-native-web önerilen sıfırlama + iOS Safari ayarları -->
+    <style id="expo-reset">
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+        /* Safari'de lastik bant kaydırmada beyaz zemin görünmesin */
+        background-color: #0a0a0b;
+        color-scheme: dark;
+      }
+      body {
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+      }
+      #root {
+        display: flex;
+        height: 100%;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <noscript>OSGB Hub'ı kullanmak için JavaScript'i etkinleştirin.</noscript>
+    <div id="root"></div>
+  </body>
+</html>

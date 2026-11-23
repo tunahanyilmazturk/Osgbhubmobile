@@ -13,6 +13,7 @@ import {
   StyleSheet,
   Text,
   View,
+  useWindowDimensions,
   type TextInputInstance,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,6 +32,8 @@ const ROLES: Segment<UserRole>[] = [
   { value: 'physician', label: 'Hekim', icon: 'medkit-outline' },
 ];
 
+const DEMO = { email: 'demo@osgbhub.com', password: 'demo1234', role: 'admin' as UserRole };
+
 const haptic = (type: 'light' | 'success' | 'error') => {
   if (Platform.OS === 'web') return;
   if (type === 'light') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -44,6 +47,11 @@ const haptic = (type: 'light' | 'success' | 'error') => {
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
+  // Dar ekranlarda (≤ 390pt) başlık tek satıra sığsın
+  const { width, height } = useWindowDimensions();
+  const compact = width < 400;
+  // Kısa ekranlarda (eski iPhone'lar, Safari araç çubukları açık) boşlukları daralt
+  const short = height < 700;
   const passwordRef = useRef<TextInputInstance>(null);
 
   const [role, setRole] = useState<UserRole>('admin');
@@ -52,7 +60,7 @@ export default function LoginScreen() {
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<'form' | 'demo' | null>(null);
   const { setUser } = useSession();
 
   // Giriş animasyonu
@@ -80,26 +88,40 @@ export default function LoginScreen() {
     ],
   });
 
-  const onSubmit = async () => {
+  const login = async (input: { email: string; password: string; role: UserRole }, mode: 'form' | 'demo') => {
     setFormError(null);
+    setLoading(mode);
+    try {
+      const user = await signIn({ ...input, email: input.email.trim(), remember });
+      haptic('success');
+      setUser({ name: user.name, email: input.email.trim(), role: user.role });
+      router.replace('/dashboard');
+    } catch (e) {
+      haptic('error');
+      setFormError(e instanceof AuthError ? e.message : 'Bağlantı hatası. Tekrar deneyin.');
+    } finally {
+      setLoading(null);
+    }
+  };
+
+  const onSubmit = () => {
     const v = validateLogin({ email, password });
     setErrors(v);
     if (v.email || v.password) {
       haptic('error');
       return;
     }
-    setLoading(true);
-    try {
-      const user = await signIn({ email: email.trim(), password, role, remember });
-      haptic('success');
-      setUser({ name: user.name, email: email.trim(), role: user.role });
-      router.replace('/dashboard');
-    } catch (e) {
-      haptic('error');
-      setFormError(e instanceof AuthError ? e.message : 'Bağlantı hatası. Tekrar deneyin.');
-    } finally {
-      setLoading(false);
-    }
+    login({ email, password, role }, 'form');
+  };
+
+  /** Demo hesabı: alanları doldurur ve doğrudan giriş yapar */
+  const onDemo = () => {
+    haptic('light');
+    setErrors({});
+    setEmail(DEMO.email);
+    setPassword(DEMO.password);
+    setRole(DEMO.role);
+    login(DEMO, 'demo');
   };
 
   return (
@@ -132,30 +154,26 @@ export default function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingTop: insets.top + spacing.xxl, paddingBottom: insets.bottom + spacing.xxl },
+            { paddingTop: insets.top + spacing.lg, paddingBottom: insets.bottom + spacing.lg },
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.container}>
+          <View style={[styles.container, short && { gap: spacing.lg }]}>
             <Animated.View style={rise(-12)}>
               <BrandMark />
             </Animated.View>
 
             <Animated.View style={[styles.hero, rise(16)]}>
-              <View style={styles.badge}>
-                <View style={styles.badgeDot} />
-                <Text style={styles.badgeText}>Güvenli giriş</Text>
-              </View>
-              <Text style={styles.title}>
-                Tekrar{'\n'}hoş geldiniz<Text style={{ color: colors.amber }}>.</Text>
+              <Text style={[styles.title, compact && { fontSize: 27, lineHeight: 32 }]}>
+                Tekrar hoş geldiniz<Text style={{ color: colors.amber }}>.</Text>
               </Text>
-              <Text style={styles.subtitle}>
-                Firmalarınızı, saha denetimlerini ve sağlık takibini tek yerden yönetin.
-              </Text>
+              {!short && (
+                <Text style={styles.subtitle}>Firmalar, eğitimler ve sertifikalar tek yerde.</Text>
+              )}
             </Animated.View>
 
-            <Animated.View style={[styles.card, rise(28)]}>
+            <Animated.View style={[styles.card, short && { gap: spacing.md, padding: spacing.lg }, rise(28)]}>
               <>
                   <View style={{ gap: spacing.sm }}>
                     <Text style={styles.sectionLabel}>Giriş türü</Text>
@@ -232,27 +250,27 @@ export default function LoginScreen() {
                     </View>
                   )}
 
-                  <Button
-                    title="Giriş yap"
-                    icon="arrow-forward"
-                    loading={loading}
-                    onPress={onSubmit}
-                  />
-
-                  <View style={styles.divider}>
-                    <View style={styles.line} />
-                    <Text style={styles.dividerText}>veya</Text>
-                    <View style={styles.line} />
+                  <View style={{ gap: spacing.md }}>
+                    <Button
+                      title="Giriş yap"
+                      icon="arrow-forward"
+                      loading={loading === 'form'}
+                      disabled={loading === 'demo'}
+                      onPress={onSubmit}
+                    />
+                    <Button
+                      title="Demo hesapla giriş yap"
+                      variant="outline"
+                      icon="flash-outline"
+                      loading={loading === 'demo'}
+                      disabled={loading === 'form'}
+                      onPress={onDemo}
+                    />
                   </View>
-
-                  <Button title="Biyometrik ile giriş" variant="outline" icon="finger-print" />
               </>
             </Animated.View>
 
             <Animated.View style={[styles.footer, rise(36)]}>
-              <Text style={styles.footerText}>
-                Hesabınız yok mu? <Text style={styles.link}>Demo talep edin</Text>
-              </Text>
               <View style={styles.secure}>
                 <Ionicons name="lock-closed" size={12} color={colors.textDim} />
                 <Text style={styles.secureText}>256-bit SSL · KVKK uyumlu</Text>
@@ -294,35 +312,21 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
-    gap: spacing.xxl,
+    gap: spacing.xl,
   },
 
-  hero: { gap: spacing.md, marginTop: spacing.lg },
-  badge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: radius.pill,
-    backgroundColor: colors.amberSoft,
-    borderWidth: 1,
-    borderColor: 'rgba(255,176,32,0.25)',
-  },
-  badgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.amber },
-  badgeText: { color: colors.amber, fontSize: 12, fontWeight: font.semibold, letterSpacing: 0.3 },
+  hero: { gap: 6 },
   title: {
     color: colors.white,
-    fontSize: 38,
-    lineHeight: 42,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: font.heavy,
     letterSpacing: -1.2,
   },
-  subtitle: { color: colors.textMuted, fontSize: 15, lineHeight: 22, maxWidth: 340 },
+  subtitle: { color: colors.textMuted, fontSize: 15, lineHeight: 21 },
 
   card: {
-    gap: spacing.xl,
+    gap: spacing.lg,
     padding: spacing.xl,
     borderRadius: radius.xl,
     backgroundColor: colors.bgElevated,
@@ -362,12 +366,7 @@ const styles = StyleSheet.create({
   },
   formErrorText: { flex: 1, color: colors.danger, fontSize: 13.5, fontWeight: font.medium },
 
-  divider: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  line: { flex: 1, height: 1, backgroundColor: colors.border },
-  dividerText: { color: colors.textDim, fontSize: 12, fontWeight: font.medium },
-
-  footer: { alignItems: 'center', gap: spacing.md, marginTop: 'auto' },
-  footerText: { color: colors.textMuted, fontSize: 14 },
+  footer: { alignItems: 'center', marginTop: 'auto' },
   secure: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   secureText: { color: colors.textDim, fontSize: 12, letterSpacing: 0.3 },
 });
