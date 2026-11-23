@@ -4,6 +4,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Avatar, Card, InfoRow, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
+import { actions } from '@/data/store';
 import { ROLE_LABELS, displayName, useSession } from '@/lib/session';
 import { colors, font, spacing } from '@/theme';
 
@@ -15,6 +16,7 @@ const PREFS = [
 
 export default function Profile() {
   const { user, signOut } = useSession();
+  const [confirmReset, setConfirmReset] = useState(false);
   const [prefs, setPrefs] = useState<Record<string, boolean>>({ approvals: true, expiry: true, katip: true });
 
   return (
@@ -46,6 +48,24 @@ export default function Profile() {
             />
           </View>
         ))}
+      </Card>
+
+      <SectionHeader title="Demo verileri" />
+      <Card style={{ gap: spacing.md }}>
+        <Text style={styles.dim}>
+          Veriler bu cihazda saklanır. Sıfırlarsanız tüm değişiklikler (hesaplar, atamalar, eğitim ilerlemeleri, içerik
+          düzenlemeleri) silinir ve örnek verilere dönülür.
+        </Text>
+        <Button
+          title={confirmReset ? 'Emin misiniz? Tekrar dokunun' : 'Demo verilerini sıfırla'}
+          variant="outline"
+          icon="refresh"
+          onPress={() => {
+            if (!confirmReset) return setConfirmReset(true);
+            actions.resetDemo();
+            setConfirmReset(false);
+          }}
+        />
       </Card>
 
       <Button title="Çıkış yap" variant="outline" icon="log-out-outline" onPress={signOut} />

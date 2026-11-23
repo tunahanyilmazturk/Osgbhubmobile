@@ -4,5 +4,6 @@ import { useSession } from '@/lib/session';
 
 export default function Index() {
   const { user } = useSession();
-  return <Redirect href={user ? '/dashboard' : '/login'} />;
+  if (!user) return <Redirect href="/login" />;
+  return <Redirect href={user.role === 'participant' ? '/my-trainings' : '/dashboard'} />;
 }

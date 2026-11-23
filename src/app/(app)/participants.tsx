@@ -2,10 +2,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
+import { CredentialsSheet, type Credential } from '@/components/CredentialsSheet';
+import { BottomSheet } from '@/components/ui/BottomSheet';
+import { Button } from '@/components/ui/Button';
 import {
   Avatar,
   Chips,
   EmptyState,
+  IconButton,
   Pill,
   Row,
   ScreenHeader,
@@ -13,7 +17,7 @@ import {
   useBottomPadding,
   useListLayout,
 } from '@/components/ui/kit';
-import { certHealth, latestCertificates, useAppState } from '@/data/store';
+import { actions, certHealth, latestCertificates, useAppState } from '@/data/store';
 import { normalize } from '@/lib/format';
 import { colors, spacing } from '@/theme';
 
@@ -23,6 +27,8 @@ export default function Participants() {
   const [q, setQ] = useState('');
   const [firmId, setFirmId] = useState(params.firmId ?? 'all');
   const bottom = useBottomPadding();
+  const [bulk, setBulk] = useState(false);
+  const [created, setCreated] = useState<Credential[]>([]);
   const list = useListLayout(spacing.sm);
 
   const rows = useMemo(() => {
@@ -45,9 +51,22 @@ export default function Participants() {
     return normalize(`${r.p.name} ${r.p.title} ${r.p.department} ${r.firm}`).includes(normalize(q));
   });
 
+  const noAccount = filtered.filter((r) => !r.p.account);
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScreenHeader title="Katılımcılar" subtitle={`${s.participants.length} firma personeli`} />
+      <ScreenHeader
+        title="Katılımcılar"
+        subtitle={`${s.participants.length} firma personeli · ${s.participants.filter((p) => p.account).length} hesap`}
+        right={
+          <IconButton
+            icon="person-add"
+            tone="amber"
+            label="Toplu hesap oluştur"
+            onPress={() => setBulk(true)}
+          />
+        }
+      />
       <FlatList
         key={list.key}
         numColumns={list.numColumns}
@@ -69,6 +88,7 @@ export default function Participants() {
                     icon="ribbon"
                   />
                   {item.expired > 0 && <Pill label={`${item.expired} süresi dolmuş`} tone="danger" />}
+                  {item.p.account && <Pill label="Hesap" tone="amber" icon="key" />}
                 </View>
               }
             />
@@ -96,6 +116,43 @@ export default function Participants() {
         contentContainerStyle={[list.contentContainerStyle, { paddingBottom: bottom }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+      />
+      <BottomSheet
+        visible={bulk}
+        onClose={() => setBulk(false)}
+        title="Toplu hesap oluştur"
+        subtitle={
+          noAccount.length
+            ? `${firmId === 'all' ? 'Listedeki' : (s.firms.find((f) => f.id === firmId)?.name ?? '') + ' firmasındaki'} ${noAccount.length} kişinin giriş hesabı yok. Hepsi için e-posta ve geçici şifre oluşturulsun mu?`
+            : 'Listedeki herkesin giriş hesabı var.'
+        }
+      >
+        <View style={{ gap: spacing.sm }}>
+          {noAccount.length > 0 && (
+            <Button
+              title={`${noAccount.length} hesap oluştur`}
+              icon="person-add"
+              onPress={() => {
+                const accs = actions.createAccounts(noAccount.map((x) => x.p.id));
+                setBulk(false);
+                setCreated(
+                  accs.map((a) => ({
+                    ...a,
+                    name: s.participants.find((x) => x.id === a.participantId)?.name ?? '',
+                  })),
+                );
+              }}
+            />
+          )}
+          <Button title="Vazgeç" variant="outline" onPress={() => setBulk(false)} />
+        </View>
+      </BottomSheet>
+      <CredentialsSheet
+        visible={created.length > 0}
+        accounts={created}
+        title={`${created.length} hesap oluşturuldu`}
+        subtitle="Bilgileri kopyalayıp katılımcılarla paylaşın. İlk girişte şifrelerini değiştirmeleri istenir."
+        onClose={() => setCreated([])}
       />
     </View>
   );

@@ -16,6 +16,10 @@ const TABS: Record<string, { label: string; icon: IconName; iconActive: IconName
   firms: { label: 'Firmalar', icon: 'business-outline', iconActive: 'business' },
   trainings: { label: 'Eğitimler', icon: 'school-outline', iconActive: 'school' },
   more: { label: 'Menü', icon: 'apps-outline', iconActive: 'apps' },
+  // Katılımcı portalı
+  'my-trainings': { label: 'Eğitimlerim', icon: 'school-outline', iconActive: 'school' },
+  'my-certificates': { label: 'Sertifikalarım', icon: 'ribbon-outline', iconActive: 'ribbon' },
+  account: { label: 'Hesabım', icon: 'person-outline', iconActive: 'person' },
 };
 
 /** Ortadaki hızlı işlem butonu bu sekmeden sonra yer alır */

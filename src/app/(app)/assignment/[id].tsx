@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ASSIGNMENT_STATUS } from '@/components/domain';
+import { OnlineAssignment } from '@/components/OnlineAssignment';
 import { Button } from '@/components/ui/Button';
 import {
   Avatar,
@@ -35,6 +36,8 @@ export default function AssignmentDetail() {
       </Screen>
     );
   }
+
+  if (a.delivery === 'online') return <OnlineAssignment a={a} />;
 
   const t = L.training(a.trainingId);
   const firm = L.firm(a.firmId);

@@ -2,11 +2,15 @@
  * Örnek (demo) veri üreticisi. Deterministik: her açılışta aynı veri oluşur.
  * Backend bağlandığında bu dosya kaldırılacak.
  */
-import { addMonths, daysFromNow, daysUntil } from '@/lib/format';
+import { addMonths, daysFromNow, daysUntil, slugify } from '@/lib/format';
+
+import { CONTENT } from './content';
 
 import type {
   Assignment,
   Certificate,
+  Enrollment,
+  ExamResult,
   Firm,
   KatipLog,
   Participant,
@@ -94,7 +98,7 @@ export const firms: Firm[] = [
   },
 ];
 
-export const trainings: Training[] = [
+const BASE_TRAININGS: Omit<Training, 'content'>[] = [
   {
     id: 'tr1', title: 'Temel İş Sağlığı ve Güvenliği', category: 'Zorunlu', hours: 16, mode: 'Yüz yüze', validityMonths: 12, icon: 'shield-checkmark',
     topics: ['Çalışma mevzuatı ile ilgili bilgiler', 'Çalışanların yasal hak ve sorumlulukları', 'Meslek hastalıklarının sebepleri', 'Kimyasal, fiziksel ve ergonomik risk etmenleri', 'Kişisel koruyucu donanım kullanımı', 'Tahliye ve kurtarma'],
@@ -120,6 +124,8 @@ export const trainings: Training[] = [
     topics: ['Ekranlı araçlarla çalışma', 'Doğru oturuş', 'Göz sağlığı', 'Stres yönetimi'],
   },
 ];
+
+export const trainings: Training[] = BASE_TRAININGS.map((t) => ({ ...t, content: CONTENT[t.id] }));
 
 const FIRST = ['Ahmet', 'Mehmet', 'Ayşe', 'Fatma', 'Mustafa', 'Emine', 'Ali', 'Hatice', 'Hüseyin', 'Zeynep', 'İbrahim', 'Elif', 'Hasan', 'Merve', 'Yusuf', 'Büşra', 'Ömer', 'Esra', 'Burak', 'Seda', 'Kemal', 'Derya', 'Serkan', 'Gamze', 'Okan', 'Tuğba', 'Emre', 'Pınar', 'Volkan', 'Ebru'];
 const LAST = ['Yılmaz', 'Kaya', 'Demir', 'Şahin', 'Çelik', 'Yıldız', 'Yıldırım', 'Öztürk', 'Aydın', 'Özdemir', 'Arslan', 'Doğan', 'Kılıç', 'Aslan', 'Çetin', 'Kara', 'Koç', 'Kurt', 'Özkan', 'Şimşek'];
@@ -204,35 +210,35 @@ const firmPeople = (fid: string) => participants.filter((p) => p.firmId === fid)
 
 export const assignments: Assignment[] = [
   {
-    id: 'a1', trainingId: 'tr1', firmId: 'f3', trainerId: 't1', date: daysFromNow(2), time: '09:00', location: 'Şantiye eğitim konteyneri',
+    id: 'a1', delivery: 'classroom', trainingId: 'tr1', firmId: 'f3', trainerId: 't1', date: daysFromNow(2), time: '09:00', location: 'Şantiye eğitim konteyneri',
     participantIds: firmPeople('f3').filter((p) => !hasValid(p.id, 'tr1')).map((p) => p.id), status: 'planned',
   },
   {
-    id: 'a2', trainingId: 'tr4', firmId: 'f3', trainerId: 't3', date: daysFromNow(5), time: '13:30', location: 'Blok B iskele alanı',
+    id: 'a2', delivery: 'classroom', trainingId: 'tr4', firmId: 'f3', trainerId: 't3', date: daysFromNow(5), time: '13:30', location: 'Blok B iskele alanı',
     participantIds: firmPeople('f3').slice(0, 6).map((p) => p.id), status: 'planned',
   },
   {
-    id: 'a3', trainingId: 'tr2', firmId: 'f1', trainerId: 't1', date: daysFromNow(0), time: '14:00', location: 'Fabrika toplantı salonu',
+    id: 'a3', delivery: 'classroom', trainingId: 'tr2', firmId: 'f1', trainerId: 't1', date: daysFromNow(0), time: '14:00', location: 'Fabrika toplantı salonu',
     participantIds: firmPeople('f1').slice(0, 8).map((p) => p.id), status: 'in_progress',
   },
   {
-    id: 'a4', trainingId: 'tr3', firmId: 'f2', trainerId: 't4', date: daysFromNow(9), time: '10:00', location: 'Yemekhane',
+    id: 'a4', delivery: 'classroom', trainingId: 'tr3', firmId: 'f2', trainerId: 't4', date: daysFromNow(9), time: '10:00', location: 'Yemekhane',
     participantIds: firmPeople('f2').slice(0, 5).map((p) => p.id), status: 'planned',
   },
   {
-    id: 'a5', trainingId: 'tr5', firmId: 'f6', trainerId: 't2', date: daysFromNow(-3), time: '09:30', location: 'Üretim holü',
+    id: 'a5', delivery: 'classroom', trainingId: 'tr5', firmId: 'f6', trainerId: 't2', date: daysFromNow(-3), time: '09:30', location: 'Üretim holü',
     participantIds: firmPeople('f6').map((p) => p.id), status: 'completed',
   },
   {
-    id: 'a6', trainingId: 'tr1', firmId: 'f5', trainerId: 't2', date: daysFromNow(-6), time: '09:00', location: 'Depo eğitim odası',
+    id: 'a6', delivery: 'classroom', trainingId: 'tr1', firmId: 'f5', trainerId: 't2', date: daysFromNow(-6), time: '09:00', location: 'Depo eğitim odası',
     participantIds: firmPeople('f5').map((p) => p.id), status: 'completed',
   },
   {
-    id: 'a7', trainingId: 'tr6', firmId: 'f7', trainerId: 't1', date: daysFromNow(-20), time: '15:00', location: 'Online (Teams)',
+    id: 'a7', delivery: 'classroom', trainingId: 'tr6', firmId: 'f7', trainerId: 't1', date: daysFromNow(-20), time: '15:00', location: 'Online (Teams)',
     participantIds: firmPeople('f7').map((p) => p.id), status: 'completed',
   },
   {
-    id: 'a8', trainingId: 'tr1', firmId: 'f8', trainerId: 't7', date: daysFromNow(12), time: '09:00', location: 'Fabrika konferans salonu',
+    id: 'a8', delivery: 'classroom', trainingId: 'tr1', firmId: 'f8', trainerId: 't7', date: daysFromNow(12), time: '09:00', location: 'Fabrika konferans salonu',
     participantIds: firmPeople('f8').filter((p) => !hasValid(p.id, 'tr1')).map((p) => p.id), status: 'planned',
   },
 ];
@@ -267,5 +273,116 @@ export const katipLogs: KatipLog[] = [
   { id: 'l2', at: hoursAgo(3), text: 'Yıldız İnşaat: uzman sınıfı uyumsuz', tone: 'danger' },
   { id: 'l3', at: hoursAgo(27), text: 'Ege Plastik sözleşmesi oluşturuldu', tone: 'neutral' },
 ];
+
+/* ------------------------------------------------------------------ */
+/* Online eğitim: katılımcı hesapları, atamalar ve ilerleme kayıtları  */
+/* ------------------------------------------------------------------ */
+
+/** Demo katılımcı hesabı (giriş sayfasındaki "Demo katılımcı" butonu) */
+export const DEMO_PARTICIPANT = { email: 'demo.katilimci@osgbhub.com', password: 'demo1234' };
+
+const firmDomain = (firmId: string) => `${slugify(firmById[firmId].name.split(' ')[0], '')}.com.tr`;
+const f1People = firmPeople('f1');
+
+f1People.slice(0, 6).forEach((p, i) => {
+  p.account =
+    i === 0
+      ? { ...DEMO_PARTICIPANT, createdAt: daysFromNow(-6), lastLogin: daysFromNow(-1) }
+      : {
+          email: `${slugify(p.name)}@${firmDomain(p.firmId)}`,
+          password: `Isg${between(1000, 9999)}`,
+          createdAt: daysFromNow(-6),
+          lastLogin: i % 2 ? daysFromNow(-between(1, 4)) : undefined,
+          mustChangePassword: i % 2 === 0,
+        };
+});
+
+/** Verilen puana karşılık gelen cevap dizisi üretir (demo kayıtları için) */
+function result(trainingId: string, kind: 'pre' | 'final', score: number, daysAgo: number, minutes: number): ExamResult {
+  const exam = kind === 'pre' ? CONTENT[trainingId].preTest : CONTENT[trainingId].finalExam;
+  const correct = Math.round((score / 100) * exam.questions.length);
+  const answers = exam.questions.map((qq, i) => (i < correct ? qq.answer : (qq.answer + 1) % qq.options.length));
+  const real = Math.round((correct / exam.questions.length) * 100);
+  return {
+    score: real,
+    answers,
+    questionIds: exam.questions.map((qq) => qq.id),
+    at: daysFromNow(-daysAgo),
+    passed: kind === 'final' ? real >= CONTENT[trainingId].passScore : undefined,
+    seconds: minutes * 60,
+  };
+}
+
+const lessonIds = (tid: string) => CONTENT[tid].lessons.map((l) => l.id);
+
+assignments.push(
+  {
+    id: 'o1', delivery: 'online', trainingId: 'tr1', firmId: 'f1', trainerId: 't1', date: daysFromNow(-5), dueDate: daysFromNow(10),
+    time: '', location: 'Online eğitim portalı', participantIds: f1People.slice(0, 6).map((p) => p.id), status: 'in_progress',
+  },
+  {
+    id: 'o2', delivery: 'online', trainingId: 'tr3', firmId: 'f1', trainerId: 't4', date: daysFromNow(-2), dueDate: daysFromNow(20),
+    time: '', location: 'Online eğitim portalı', participantIds: f1People.slice(0, 4).map((p) => p.id), status: 'in_progress',
+  },
+  {
+    id: 'o3', delivery: 'online', trainingId: 'tr5', firmId: 'f1', trainerId: 't1', date: daysFromNow(-40), dueDate: daysFromNow(-20),
+    time: '', location: 'Online eğitim portalı', participantIds: [f1People[0].id], status: 'completed',
+  },
+);
+
+const blank = (id: string, aid: string, pid: string, tid: string): Enrollment => ({
+  id, assignmentId: aid, participantId: pid, trainingId: tid, status: 'not_started',
+  finalAttempts: [], completedLessons: [], lessonProgress: {}, seconds: 0, extraAttempts: 0,
+});
+
+const [d1, d2, d3, d4, d5, d6] = f1People;
+export const enrollments: Enrollment[] = [
+  // Demo katılımcı: ön sınav bitti, ilk ders tamam, ikinci derste
+  {
+    ...blank('e1', 'o1', d1.id, 'tr1'), status: 'in_progress', startedAt: daysFromNow(-3),
+    preTest: result('tr1', 'pre', 60, 3, 6), completedLessons: ['tr1-l1'], lessonProgress: { 'tr1-l2': { slide: 1 } }, seconds: 1680,
+  },
+  // Tamamladı → sertifika onay bekliyor
+  {
+    ...blank('e2', 'o1', d2.id, 'tr1'), status: 'completed', startedAt: daysFromNow(-4), completedAt: daysFromNow(-1),
+    preTest: result('tr1', 'pre', 40, 4, 5), completedLessons: lessonIds('tr1'), finalAttempts: [result('tr1', 'final', 90, 1, 11)], seconds: 4320,
+  },
+  // Finalden bir kez kaldı
+  {
+    ...blank('e3', 'o1', d3.id, 'tr1'), status: 'in_progress', startedAt: daysFromNow(-4),
+    preTest: result('tr1', 'pre', 80, 4, 4), completedLessons: lessonIds('tr1'), finalAttempts: [result('tr1', 'final', 50, 0, 13)], seconds: 3900,
+  },
+  blank('e4', 'o1', d4.id, 'tr1'),
+  // Tamamladı → sertifika onay bekliyor
+  {
+    ...blank('e5', 'o1', d5.id, 'tr1'), status: 'completed', startedAt: daysFromNow(-3), completedAt: daysFromNow(0),
+    preTest: result('tr1', 'pre', 60, 3, 5), completedLessons: lessonIds('tr1'), finalAttempts: [result('tr1', 'final', 60, 1, 12), result('tr1', 'final', 80, 0, 10)], seconds: 5400,
+  },
+  blank('e6', 'o1', d6.id, 'tr1'),
+  // İlk yardım: kimse başlamadı
+  blank('e7', 'o2', d1.id, 'tr3'),
+  blank('e8', 'o2', d2.id, 'tr3'),
+  blank('e9', 'o2', d3.id, 'tr3'),
+  blank('e10', 'o2', d4.id, 'tr3'),
+  // Demo katılımcının daha önce tamamladığı eğitim (sertifikası imzalı)
+  {
+    ...blank('e11', 'o3', d1.id, 'tr5'), status: 'completed', startedAt: daysFromNow(-35), completedAt: daysFromNow(-33),
+    preTest: result('tr5', 'pre', 33, 35, 3), completedLessons: lessonIds('tr5'), finalAttempts: [result('tr5', 'final', 100, 33, 6)], seconds: 2700,
+  },
+];
+
+for (const e of enrollments.filter((x) => x.status === 'completed')) {
+  const p = participants.find((x) => x.id === e.participantId)!;
+  const a = assignments.find((x) => x.id === e.assignmentId)!;
+  const signed = e.id === 'e11';
+  certificates.push(
+    makeCert(p, e.trainingId, e.completedAt!, {
+      assignmentId: a.id, enrollmentId: e.id, trainerId: a.trainerId,
+      status: signed ? 'signed' : 'pending',
+      approvedBy: signed ? 'Ahmet Yılmaz' : undefined, approvedAt: signed ? e.completedAt : undefined,
+      signedBy: signed ? 'Ahmet Yılmaz' : undefined, signedAt: signed ? daysFromNow(-32) : undefined,
+    }),
+  );
+}
 
 export const seedNow = nowIso;

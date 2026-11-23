@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Avatar, Card, Checkbox, EmptyState, Screen, ScreenHeader } from '@/components/ui/kit';
 import { actions, useAppState, useLookups } from '@/data/store';
 import { formatDate } from '@/lib/format';
+import { formatDuration } from '@/lib/useStudyTimer';
 import { displayName, useSession } from '@/lib/session';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -103,6 +104,8 @@ export default function Approvals() {
                 </Pressable>
                 {g.map((c) => {
                   const p = L.participant(c.participantId);
+                  const en = c.enrollmentId ? s.enrollments.find((x) => x.id === c.enrollmentId) : undefined;
+                  const final = en?.finalAttempts.find((x) => x.passed);
                   return (
                     <View key={c.id} style={styles.item}>
                       <Pressable
@@ -115,9 +118,25 @@ export default function Approvals() {
                         <Avatar name={p?.name ?? '?'} size={32} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.name}>{p?.name}</Text>
-                          <Text style={styles.dim}>{p?.title}</Text>
+                          <Text style={styles.dim}>
+                            {en
+                              ? `Online · Final %${final?.score ?? '-'}${en.preTest ? ` · Ön %${en.preTest.score}` : ''} · ${formatDuration(en.seconds)}`
+                              : p?.title}
+                          </Text>
                         </View>
                       </Pressable>
+                      {en && (
+                        <Pressable
+                          onPress={() => router.push(`/enrollment/${en.id}`)}
+                          hitSlop={6}
+                          style={styles.review}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${p?.name} eğitimini incele`}
+                        >
+                          <Ionicons name="eye-outline" size={14} color={colors.amber} />
+                          <Text style={styles.reviewText}>İncele</Text>
+                        </Pressable>
+                      )}
                       <Pressable
                         onPress={() => setRejecting(c.id)}
                         hitSlop={8}
@@ -198,6 +217,17 @@ const styles = StyleSheet.create({
   },
   itemMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   name: { color: colors.text, fontSize: 14.5, fontWeight: font.semibold },
+  review: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 32,
+    paddingHorizontal: 10,
+    marginRight: spacing.sm,
+    borderRadius: 16,
+    backgroundColor: colors.amberSoft,
+  },
+  reviewText: { color: colors.amber, fontSize: 12.5, fontWeight: font.semibold },
   reject: {
     width: 32,
     height: 32,

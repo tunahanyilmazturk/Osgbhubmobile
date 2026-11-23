@@ -18,9 +18,11 @@ type Props = Omit<PressableProps, 'children'> & {
   variant?: 'primary' | 'outline';
   loading?: boolean;
   icon?: keyof typeof Ionicons.glyphMap;
+  /** Daha alçak ve küçük yazılı buton (yan yana butonlar için) */
+  compact?: boolean;
 };
 
-export function Button({ title, variant = 'primary', loading, icon, disabled, ...rest }: Props) {
+export function Button({ title, variant = 'primary', loading, icon, disabled, compact, ...rest }: Props) {
   const scale = useState(() => new Animated.Value(1))[0];
   const animate = (to: number) =>
     Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 40, bounciness: 6 }).start();
@@ -34,8 +36,10 @@ export function Button({ title, variant = 'primary', loading, icon, disabled, ..
         <ActivityIndicator color={fg} />
       ) : (
         <>
-          {icon && <Ionicons name={icon} size={20} color={isPrimary ? fg : colors.amber} />}
-          <Text style={[styles.title, { color: fg }]}>{title}</Text>
+          {icon && <Ionicons name={icon} size={compact ? 18 : 20} color={isPrimary ? fg : colors.amber} />}
+          <Text style={[styles.title, compact && styles.titleCompact, { color: fg }]} numberOfLines={1}>
+            {title}
+          </Text>
         </>
       )}
     </View>
@@ -51,6 +55,7 @@ export function Button({ title, variant = 'primary', loading, icon, disabled, ..
         onPressOut={() => animate(1)}
         style={[
           styles.base,
+          compact && { height: 48 },
           !isPrimary && styles.outline,
           isPrimary && styles.primaryShadow,
           (disabled || loading) && { opacity: 0.85 },
@@ -99,7 +104,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
-  title: { fontSize: 16, fontWeight: font.bold, letterSpacing: 0.3 },
+  title: { flexShrink: 1, fontSize: 16, fontWeight: font.bold, letterSpacing: 0.3 },
+  titleCompact: { fontSize: 14.5, letterSpacing: 0 },
 });

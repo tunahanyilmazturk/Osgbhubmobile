@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 
 import { AssignmentRow } from '@/components/domain';
+import { Button } from '@/components/ui/Button';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import {
   Chips,
@@ -16,7 +17,7 @@ import {
   useListLayout,
   type IconName,
 } from '@/components/ui/kit';
-import { useAppState } from '@/data/store';
+import { actions, useAppState } from '@/data/store';
 import type { AssignmentStatus } from '@/data/types';
 import { colors, spacing } from '@/theme';
 
@@ -54,6 +55,14 @@ export default function Trainings() {
           { value: 'catalog', label: 'Eğitim kataloğu', icon: 'library-outline' },
         ]}
       />
+      {tab === 'catalog' && (
+        <Button
+          title="Yeni eğitim oluştur"
+          variant="outline"
+          icon="add-circle-outline"
+          onPress={() => router.push(`/content/${actions.createTraining()}`)}
+        />
+      )}
       {tab === 'assignments' && (
         <Chips<StatusFilter>
           value={status}
@@ -126,7 +135,7 @@ export default function Trainings() {
                   onPress={() => router.push(`/training/${t.id}`)}
                   left={<IconTile icon={t.icon as IconName} tone="amber" size={44} />}
                   title={t.title}
-                  subtitle={`${t.hours} saat · ${t.mode} · ${t.validityMonths / 12} yıl geçerli`}
+                  subtitle={`${t.hours} saat · ${t.content.lessons.length} ders · ${t.content.finalExam.questions.length} soru · ${t.validityMonths} ay geçerli`}
                   meta={
                     <View
                       style={{ flexDirection: 'row', gap: spacing.sm, marginTop: 4, alignItems: 'center' }}

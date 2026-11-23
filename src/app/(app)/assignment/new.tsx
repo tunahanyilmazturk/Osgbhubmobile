@@ -4,7 +4,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { CredentialsSheet } from '@/components/CredentialsSheet';
 import { Button } from '@/components/ui/Button';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { TextField } from '@/components/ui/TextField';
 import {
   Avatar,
@@ -17,11 +19,13 @@ import {
   SectionHeader,
   type IconName,
 } from '@/components/ui/kit';
+import type { DeliveryMode } from '@/data/types';
 import { ROLE_LABEL, actions, certHealth, latestCertificates, useAppState } from '@/data/store';
-import { daysFromNow, formatDayShort } from '@/lib/format';
+import { daysFromNow, formatDate, formatDayShort } from '@/lib/format';
 import { colors, font, radius, spacing } from '@/theme';
 
 const TIMES = ['09:00', '10:30', '13:30', '15:00'];
+const DUE_OPTIONS = [7, 14, 30, 60];
 
 export default function NewAssignment() {
   const params = useLocalSearchParams<{ firmId?: string; trainingId?: string }>();
@@ -35,13 +39,22 @@ export default function NewAssignment() {
   const [location, setLocation] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState<DeliveryMode>('online');
+  const [dueDays, setDueDays] = useState(14);
+  const [autoAccounts, setAutoAccounts] = useState(true);
+  const [created, setCreated] = useState<{
+    id: string;
+    accounts: { email: string; password: string; name: string }[];
+  } | null>(null);
 
   const firm = s.firms.find((f) => f.id === firmId);
   const days = useMemo(() => Array.from({ length: 14 }, (_, i) => daysFromNow(i)), []);
 
   const people = useMemo(() => {
     if (!firmId) return [];
-    const latest = latestCertificates(s.certificates.filter((c) => c.firmId === firmId && c.trainingId === trainingId));
+    const latest = latestCertificates(
+      s.certificates.filter((c) => c.firmId === firmId && c.trainingId === trainingId),
+    );
     return s.participants
       .filter((p) => p.firmId === firmId)
       .map((p) => {
@@ -72,24 +85,64 @@ export default function NewAssignment() {
     if (!firmId) return setError('Firma seçin');
     if (!trainerId) return setError('Eğitmen seçin');
     if (!selected.size) return setError('En az bir katılımcı seçin');
+    const training = s.trainings.find((x) => x.id === trainingId);
+    if (
+      delivery === 'online' &&
+      !training?.content.lessons.length &&
+      !training?.content.finalExam.questions.length
+    ) {
+      return setError('Bu eğitimin online içeriği yok. Önce içerik editöründen ders ve sınav ekleyin.');
+    }
     setError(null);
+    const online = delivery === 'online';
     const id = actions.createAssignment({
+      delivery,
       trainingId,
       firmId,
       trainerId,
-      date,
-      time,
-      location: location.trim() || 'Firma eğitim salonu',
+      date: online ? daysFromNow(0) : date,
+      dueDate: online ? daysFromNow(dueDays) : undefined,
+      time: online ? '' : time,
+      location: online ? 'Online eğitim portalı' : location.trim() || 'Firma eğitim salonu',
       participantIds: [...selected],
     });
     if (Platform.OS !== 'web') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    // Online eğitimde hesabı olmayanlara giriş hesabı aç ve bilgileri göster
+    if (online && autoAccounts && withoutAccount.length) {
+      const accs = actions.createAccounts(withoutAccount.map((x) => x.id));
+      setCreated({
+        id,
+        accounts: accs.map((a) => ({
+          ...a,
+          name: s.participants.find((x) => x.id === a.participantId)?.name ?? '',
+        })),
+      });
+      return;
+    }
     router.replace(`/assignment/${id}`);
   };
+
+  const withoutAccount = s.participants.filter((p) => selected.has(p.id) && !p.account);
 
   const needCount = people.filter((x) => x.needs).length;
 
   return (
     <Screen header={<ScreenHeader title="Eğitim ata" subtitle="Yeni eğitim oturumu planla" />}>
+      {/* Teslim şekli */}
+      <SegmentedControl<DeliveryMode>
+        value={delivery}
+        onChange={setDelivery}
+        segments={[
+          { value: 'online', label: 'Online eğitim', icon: 'laptop-outline' },
+          { value: 'classroom', label: 'Yüz yüze', icon: 'people-outline' },
+        ]}
+      />
+      <Text style={styles.dim}>
+        {delivery === 'online'
+          ? 'Katılımcılar kendi hesaplarıyla giriş yapıp ön sınav, dersler ve final sınavını tamamlar. Final geçilince sertifika onayınıza düşer.'
+          : 'Eğitim belirlenen tarih ve yerde yapılır; yoklama ile tamamlanır.'}
+      </Text>
+
       {/* 1. Eğitim */}
       <SectionHeader title="1. Eğitim" />
       <View style={{ gap: spacing.sm }}>
@@ -110,10 +163,12 @@ export default function NewAssignment() {
               <View style={{ flex: 1 }}>
                 <Text style={styles.optionTitle}>{t.title}</Text>
                 <Text style={styles.dim}>
-                  {t.hours} saat · {t.mode}
+                  {t.hours} saat · {t.content.lessons.length} ders · {t.content.finalExam.questions.length} soru
                 </Text>
               </View>
-              <View style={[styles.radio, active && styles.radioOn]}>{active && <View style={styles.radioDot} />}</View>
+              <View style={[styles.radio, active && styles.radioOn]}>
+                {active && <View style={styles.radioDot} />}
+              </View>
             </Pressable>
           );
         })}
@@ -121,7 +176,11 @@ export default function NewAssignment() {
 
       {/* 2. Firma */}
       <SectionHeader title="2. Firma" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: spacing.sm }}
+      >
         {s.firms.map((f) => {
           const active = f.id === firmId;
           return (
@@ -144,7 +203,11 @@ export default function NewAssignment() {
 
       {/* 3. Eğitmen */}
       <SectionHeader title="3. Eğitmen" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: spacing.sm }}
+      >
         {trainers.map((m) => {
           const active = m.id === trainerId;
           return (
@@ -165,48 +228,74 @@ export default function NewAssignment() {
         })}
       </ScrollView>
 
-      {/* 4. Tarih ve yer */}
-      <SectionHeader title="4. Tarih ve yer" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {days.map((d) => {
-          const f = formatDayShort(d);
-          const active = d === date;
-          return (
-            <Pressable
-              key={d}
-              onPress={() => setDate(d)}
-              style={[styles.day, active && styles.dayActive]}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: active }}
-              accessibilityLabel={`${f.day} ${f.month} ${f.weekday}`}
-            >
-              <Text style={[styles.dayWeek, active && { color: colors.onAmber }]}>{f.weekday}</Text>
-              <Text style={[styles.dayNum, active && { color: colors.onAmber }]}>{f.day}</Text>
-              <Text style={[styles.dayWeek, active && { color: colors.onAmber }]}>{f.month}</Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        {TIMES.map((t) => (
-          <Pressable
-            key={t}
-            onPress={() => setTime(t)}
-            style={[styles.time, t === time && styles.dayActive]}
-            accessibilityRole="radio"
-            accessibilityState={{ checked: t === time }}
+      {/* 4. Tarih */}
+      {delivery === 'online' ? (
+        <>
+          <SectionHeader title="4. Tamamlama süresi" />
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {DUE_OPTIONS.map((d) => (
+              <Pressable
+                key={d}
+                onPress={() => setDueDays(d)}
+                style={[styles.time, d === dueDays && styles.dayActive]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: d === dueDays }}
+              >
+                <Text style={[styles.timeText, d === dueDays && { color: colors.onAmber }]}>{d} gün</Text>
+              </Pressable>
+            ))}
+          </View>
+          <Text style={styles.dim}>Son tarih: {formatDate(daysFromNow(dueDays))}</Text>
+        </>
+      ) : (
+        <>
+          <SectionHeader title="4. Tarih ve yer" />
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.sm }}
           >
-            <Text style={[styles.timeText, t === time && { color: colors.onAmber }]}>{t}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <TextField
-        label="Eğitim yeri"
-        icon="location-outline"
-        placeholder={firm ? `${firm.name} eğitim salonu` : 'Eğitim salonu'}
-        value={location}
-        onChangeText={setLocation}
-      />
+            {days.map((d) => {
+              const f = formatDayShort(d);
+              const active = d === date;
+              return (
+                <Pressable
+                  key={d}
+                  onPress={() => setDate(d)}
+                  style={[styles.day, active && styles.dayActive]}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: active }}
+                  accessibilityLabel={`${f.day} ${f.month} ${f.weekday}`}
+                >
+                  <Text style={[styles.dayWeek, active && { color: colors.onAmber }]}>{f.weekday}</Text>
+                  <Text style={[styles.dayNum, active && { color: colors.onAmber }]}>{f.day}</Text>
+                  <Text style={[styles.dayWeek, active && { color: colors.onAmber }]}>{f.month}</Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {TIMES.map((t) => (
+              <Pressable
+                key={t}
+                onPress={() => setTime(t)}
+                style={[styles.time, t === time && styles.dayActive]}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: t === time }}
+              >
+                <Text style={[styles.timeText, t === time && { color: colors.onAmber }]}>{t}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <TextField
+            label="Eğitim yeri"
+            icon="location-outline"
+            placeholder={firm ? `${firm.name} eğitim salonu` : 'Eğitim salonu'}
+            value={location}
+            onChangeText={setLocation}
+          />
+        </>
+      )}
 
       {/* 5. Katılımcılar */}
       <SectionHeader title={`5. Katılımcılar${selected.size ? ` (${selected.size})` : ''}`} />
@@ -241,11 +330,29 @@ export default function NewAssignment() {
                   <Text style={styles.optionTitle}>{p.name}</Text>
                   <Text style={styles.dim}>{p.title}</Text>
                 </View>
+                {delivery === 'online' && !p.account && <Pill label="Hesap yok" icon="person-outline" />}
                 {needs ? <Pill label="Eksik" tone="amber" /> : <Pill label="Geçerli" tone="success" />}
               </Pressable>
             ))}
           </Card>
         </>
+      )}
+
+      {delivery === 'online' && withoutAccount.length > 0 && (
+        <Pressable
+          onPress={() => setAutoAccounts((x) => !x)}
+          style={styles.accounts}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: autoAccounts }}
+        >
+          <Checkbox checked={autoAccounts} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.optionTitle}>{withoutAccount.length} katılımcıya giriş hesabı oluştur</Text>
+            <Text style={styles.dim}>
+              Seçilenlerden hesabı olmayanlar için e-posta ve geçici şifre üretilir.
+            </Text>
+          </View>
+        </Pressable>
       )}
 
       {error && (
@@ -254,7 +361,22 @@ export default function NewAssignment() {
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-      <Button title={`Eğitimi ata${selected.size ? ` · ${selected.size} kişi` : ''}`} icon="checkmark" onPress={submit} />
+      <Button
+        title={`Eğitimi ata${selected.size ? ` · ${selected.size} kişi` : ''}`}
+        icon="checkmark"
+        onPress={submit}
+      />
+      <CredentialsSheet
+        visible={!!created}
+        accounts={created?.accounts ?? []}
+        title="Eğitim atandı"
+        subtitle="Aşağıdaki katılımcılar için giriş hesabı oluşturuldu. Bilgileri kopyalayıp paylaşın; ilk girişte şifrelerini değiştirmeleri istenir."
+        onClose={() => {
+          const id = created?.id;
+          setCreated(null);
+          if (id) router.replace(`/assignment/${id}`);
+        }}
+      />
     </Screen>
   );
 }
@@ -340,6 +462,16 @@ const styles = StyleSheet.create({
   quickText: { color: colors.amber, fontSize: 12.5, fontWeight: font.semibold },
   person: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   border: { borderTopWidth: 1, borderTopColor: colors.border },
+  accounts: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.amberSoft,
+    borderWidth: 1,
+    borderColor: 'rgba(255,176,32,0.3)',
+  },
   error: {
     flexDirection: 'row',
     alignItems: 'center',

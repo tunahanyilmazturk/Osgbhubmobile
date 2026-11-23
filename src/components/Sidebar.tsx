@@ -21,13 +21,26 @@ type Item = {
   badgeTone?: 'amber' | 'danger';
 };
 
-/** Bilgisayar görünümünde sol kenar menü */
-export function Sidebar() {
+/** Bilgisayar görünümünde sol kenar menü (personel ya da katılımcı) */
+export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participant' }) {
   const s = useAppState();
   const { user, signOut } = useSession();
   const pathname = usePathname();
 
   const sections = useMemo<{ title?: string; items: Item[] }[]>(() => {
+    if (variant === 'participant') {
+      const mine = s.enrollments.filter((e) => e.participantId === user?.participantId);
+      const open = mine.filter((e) => e.status === 'not_started' || e.status === 'in_progress').length;
+      return [
+        {
+          items: [
+            { label: 'Eğitimlerim', icon: 'school-outline', iconActive: 'school', href: '/my-trainings', match: ['/my-trainings', '/course/', '/lesson/', '/exam/'], badge: open, badgeTone: 'amber' },
+            { label: 'Sertifikalarım', icon: 'ribbon-outline', iconActive: 'ribbon', href: '/my-certificates', match: ['/my-certificates', '/my-certificate/'] },
+            { label: 'Hesabım', icon: 'person-outline', iconActive: 'person', href: '/account', match: ['/account'] },
+          ],
+        },
+      ];
+    }
     const pending = s.certificates.filter((c) => c.status === 'pending').length;
     const toSign =
       s.certificates.filter((c) => c.status === 'approved').length +
@@ -63,7 +76,7 @@ export function Sidebar() {
         ],
       },
     ];
-  }, [s]);
+  }, [s, variant, user?.participantId]);
 
   const isActive = (it: Item) => it.match.some((m) => pathname === m || pathname.startsWith(m.endsWith('/') ? m : `${m}/`));
 
@@ -87,14 +100,16 @@ export function Sidebar() {
         </View>
       </View>
 
-      <Pressable
-        onPress={() => router.push('/assignment/new')}
-        style={({ pressed }) => [styles.cta, pressed && { opacity: 0.85 }]}
-        accessibilityRole="button"
-      >
-        <Ionicons name="add-circle" size={18} color={colors.onAmber} />
-        <Text style={styles.ctaText}>Eğitim ata</Text>
-      </Pressable>
+      {variant === 'staff' && (
+        <Pressable
+          onPress={() => router.push('/assignment/new')}
+          style={({ pressed }) => [styles.cta, pressed && { opacity: 0.85 }]}
+          accessibilityRole="button"
+        >
+          <Ionicons name="add-circle" size={18} color={colors.onAmber} />
+          <Text style={styles.ctaText}>Eğitim ata</Text>
+        </Pressable>
+      )}
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.lg }} showsVerticalScrollIndicator={false}>
         {sections.map((sec, i) => (
@@ -109,7 +124,7 @@ export function Sidebar() {
 
       {/* Kullanıcı */}
       <View style={styles.user}>
-        <Pressable onPress={() => router.push('/profile')} style={styles.userMain} accessibilityRole="button" accessibilityLabel="Profil">
+        <Pressable onPress={() => router.push(variant === 'staff' ? '/profile' : '/account')} style={styles.userMain} accessibilityRole="button" accessibilityLabel="Profil">
           <Avatar name={user ? displayName(user.name) : '?'} size={36} tone="amber" />
           <View style={{ flex: 1 }}>
             <Text style={styles.userName} numberOfLines={1}>

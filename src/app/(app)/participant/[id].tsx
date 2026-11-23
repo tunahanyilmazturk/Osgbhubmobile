@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { CertificateRow } from '@/components/domain';
+import { CertificateRow, ENROLLMENT_STATUS } from '@/components/domain';
+import { ParticipantAccountCard } from '@/components/ParticipantAccountCard';
 import { Button } from '@/components/ui/Button';
-import { Avatar, Card, EmptyState, InfoRow, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
-import { useAppState, useLookups } from '@/data/store';
+import { Avatar, Card, EmptyState, InfoRow, Pill, ProgressBar, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
+import { courseState, useAppState, useLookups } from '@/data/store';
 import { formatDate } from '@/lib/format';
 import { colors, font, spacing } from '@/theme';
 
@@ -26,7 +27,10 @@ export default function ParticipantDetail() {
   const certs = s.certificates
     .filter((c) => c.participantId === p.id)
     .sort((a, b) => b.issueDate.localeCompare(a.issueDate));
-  const upcoming = s.assignments.filter((a) => a.status !== 'completed' && a.participantIds.includes(p.id));
+  const upcoming = s.assignments.filter(
+    (a) => a.delivery === 'classroom' && a.status !== 'completed' && a.participantIds.includes(p.id),
+  );
+  const online = s.enrollments.filter((e) => e.participantId === p.id);
 
   return (
     <Screen header={<ScreenHeader title={p.name} subtitle={firm?.name} />}>
@@ -43,6 +47,35 @@ export default function ParticipantDetail() {
         <InfoRow icon="id-card-outline" label="T.C. kimlik" value={p.tcMasked} />
         <InfoRow icon="calendar-outline" label="İşe giriş" value={formatDate(p.startDate)} />
       </Card>
+
+      <ParticipantAccountCard p={p} />
+
+      {online.length > 0 && (
+        <>
+          <SectionHeader title="Online eğitimler" />
+          {online.map((e) => {
+            const t = L.training(e.trainingId)!;
+            const cs = courseState(t, e);
+            const st = ENROLLMENT_STATUS[e.status];
+            return (
+              <Card key={e.id} onPress={() => router.push(`/enrollment/${e.id}`)} style={{ gap: spacing.sm }}>
+                <View style={styles.rowTop}>
+                  <Text style={[styles.item, { flex: 1 }]} numberOfLines={1}>
+                    {t.title}
+                  </Text>
+                  <Pill label={st.label} tone={st.tone} icon={st.icon} />
+                </View>
+                <ProgressBar value={cs.progress} tone={e.status === 'completed' ? 'success' : 'amber'} height={5} label="İlerleme" />
+                <Text style={styles.dim}>
+                  %{Math.round(cs.progress * 100)}
+                  {e.preTest ? ` · Ön %${e.preTest.score}` : ''}
+                  {cs.bestFinal !== undefined ? ` · Final %${cs.bestFinal}` : ''}
+                </Text>
+              </Card>
+            );
+          })}
+        </>
+      )}
 
       {upcoming.length > 0 && (
         <>
@@ -78,5 +111,6 @@ export default function ParticipantDetail() {
 const styles = StyleSheet.create({
   name: { color: colors.white, fontSize: 20, fontWeight: font.bold, marginTop: spacing.sm },
   dim: { color: colors.textDim, fontSize: 13 },
+  rowTop: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   item: { color: colors.text, fontSize: 15, fontWeight: font.semibold },
 });

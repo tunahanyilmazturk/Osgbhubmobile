@@ -25,16 +25,18 @@ import { SegmentedControl, type Segment } from '@/components/ui/SegmentedControl
 import { TextField } from '@/components/ui/TextField';
 import { useLayout } from '@/lib/responsive';
 import { useSession } from '@/lib/session';
-import { AuthError, signIn, validateLogin, type UserRole } from '@/lib/auth';
+import { DEMO_PARTICIPANT } from '@/data/seed';
+import { AuthError, signIn, signInParticipant, validateLogin } from '@/lib/auth';
 import { colors, font, radius, spacing } from '@/theme';
 
-const ROLES: Segment<UserRole>[] = [
-  { value: 'admin', label: 'Yönetici', icon: 'briefcase-outline' },
-  { value: 'specialist', label: 'İSG Uzmanı', icon: 'construct-outline' },
-  { value: 'physician', label: 'Hekim', icon: 'medkit-outline' },
+type Mode = 'staff' | 'participant';
+
+const MODES: Segment<Mode>[] = [
+  { value: 'staff', label: 'OSGB personeli', icon: 'briefcase-outline' },
+  { value: 'participant', label: 'Katılımcı', icon: 'school-outline' },
 ];
 
-const DEMO = { email: 'demo@osgbhub.com', password: 'demo1234', role: 'admin' as UserRole };
+const DEMO_STAFF = { email: 'demo@osgbhub.com', password: 'demo1234' };
 
 const haptic = (type: 'light' | 'success' | 'error') => {
   if (Platform.OS === 'web') return;
@@ -56,13 +58,13 @@ export default function LoginScreen() {
   const { isDesktop } = useLayout();
   const passwordRef = useRef<TextInputInstance>(null);
 
-  const [role, setRole] = useState<UserRole>('admin');
+  const [mode, setMode] = useState<Mode>('staff');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(true);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<'form' | 'demo' | null>(null);
+  const [loading, setLoading] = useState<'form' | Mode | null>(null);
   const { setUser } = useSession();
 
   // Giriş animasyonu
@@ -88,14 +90,21 @@ export default function LoginScreen() {
     transform: [{ translateY: enter.interpolate({ inputRange: [0, 1], outputRange: [offset, 0] }) }],
   });
 
-  const login = async (input: { email: string; password: string; role: UserRole }, mode: 'form' | 'demo') => {
+  const login = async (input: { email: string; password: string }, as: Mode, source: 'form' | Mode) => {
     setFormError(null);
-    setLoading(mode);
+    setLoading(source);
     try {
-      const user = await signIn({ ...input, email: input.email.trim(), remember });
-      haptic('success');
-      setUser({ name: user.name, email: input.email.trim(), role: user.role });
-      router.replace('/dashboard');
+      if (as === 'participant') {
+        const p = await signInParticipant(input.email, input.password);
+        haptic('success');
+        setUser({ name: p.name, email: p.account!.email, role: 'participant', participantId: p.id }, remember);
+        router.replace('/my-trainings');
+      } else {
+        const user = await signIn({ ...input, email: input.email.trim(), role: 'admin', remember });
+        haptic('success');
+        setUser({ name: user.name, email: input.email.trim(), role: user.role }, remember);
+        router.replace('/dashboard');
+      }
     } catch (e) {
       haptic('error');
       setFormError(e instanceof AuthError ? e.message : 'Bağlantı hatası. Tekrar deneyin.');
@@ -111,17 +120,18 @@ export default function LoginScreen() {
       haptic('error');
       return;
     }
-    login({ email, password, role }, 'form');
+    login({ email, password }, mode, 'form');
   };
 
-  /** Demo hesabı: alanları doldurur ve doğrudan giriş yapar */
-  const onDemo = () => {
+  /** Demo hesapları: alanları doldurur ve doğrudan giriş yapar */
+  const onDemo = (as: Mode) => {
     haptic('light');
+    const demo = as === 'staff' ? DEMO_STAFF : DEMO_PARTICIPANT;
     setErrors({});
-    setEmail(DEMO.email);
-    setPassword(DEMO.password);
-    setRole(DEMO.role);
-    login(DEMO, 'demo');
+    setMode(as);
+    setEmail(demo.email);
+    setPassword(demo.password);
+    login(demo, as, as);
   };
 
   return (
@@ -187,11 +197,12 @@ export default function LoginScreen() {
                 <View style={{ gap: spacing.sm }}>
                   <Text style={styles.sectionLabel}>Giriş türü</Text>
                   <SegmentedControl
-                    segments={ROLES}
-                    value={role}
-                    onChange={(r) => {
+                    segments={MODES}
+                    value={mode}
+                    onChange={(m) => {
                       haptic('light');
-                      setRole(r);
+                      setFormError(null);
+                      setMode(m);
                     }}
                   />
                 </View>
@@ -199,7 +210,7 @@ export default function LoginScreen() {
                 <TextField
                   label="E-posta"
                   icon="mail-outline"
-                  placeholder="ornek@osgb.com.tr"
+                  placeholder={mode === 'staff' ? 'ornek@osgb.com.tr' : 'ad.soyad@firma.com.tr'}
                   value={email}
                   onChangeText={(t) => {
                     setEmail(t);
@@ -264,17 +275,33 @@ export default function LoginScreen() {
                     title="Giriş yap"
                     icon="arrow-forward"
                     loading={loading === 'form'}
-                    disabled={loading === 'demo'}
+                    disabled={!!loading && loading !== 'form'}
                     onPress={onSubmit}
                   />
-                  <Button
-                    title="Demo hesapla giriş yap"
-                    variant="outline"
-                    icon="flash-outline"
-                    loading={loading === 'demo'}
-                    disabled={loading === 'form'}
-                    onPress={onDemo}
-                  />
+                  <View style={styles.demoRow}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Demo yönetici"
+                        variant="outline"
+                        compact
+                        icon="briefcase-outline"
+                        loading={loading === 'staff'}
+                        disabled={!!loading && loading !== 'staff'}
+                        onPress={() => onDemo('staff')}
+                      />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        title="Demo katılımcı"
+                        variant="outline"
+                        compact
+                        icon="school-outline"
+                        loading={loading === 'participant'}
+                        disabled={!!loading && loading !== 'participant'}
+                        onPress={() => onDemo('participant')}
+                      />
+                    </View>
+                  </View>
                 </View>
               </>
             </Animated.View>
@@ -348,6 +375,7 @@ const styles = StyleSheet.create({
     fontWeight: font.medium,
     letterSpacing: 0.2,
   },
+  demoRow: { flexDirection: 'row', gap: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   remember: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   checkbox: {

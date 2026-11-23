@@ -7,9 +7,18 @@ import {
   HAZARD_LABEL,
   certHealth,
   type CertHealth,
+  useAppState,
   useLookups,
 } from '@/data/store';
-import type { Assignment, AssignmentStatus, Certificate, Firm, HazardClass, KatipStatus } from '@/data/types';
+import type {
+  Assignment,
+  AssignmentStatus,
+  Certificate,
+  EnrollmentStatus,
+  Firm,
+  HazardClass,
+  KatipStatus,
+} from '@/data/types';
 import { formatDate, formatDayShort, remainingText } from '@/lib/format';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -28,6 +37,13 @@ export const ASSIGNMENT_STATUS: Record<AssignmentStatus, { label: string; tone: 
   planned: { label: 'Planlandı', tone: 'neutral', icon: 'calendar' },
   in_progress: { label: 'Devam ediyor', tone: 'amber', icon: 'play-circle' },
   completed: { label: 'Tamamlandı', tone: 'success', icon: 'checkmark-circle' },
+};
+
+export const ENROLLMENT_STATUS: Record<EnrollmentStatus, { label: string; tone: Tone; icon: IconName }> = {
+  not_started: { label: 'Başlanmadı', tone: 'neutral', icon: 'ellipse-outline' },
+  in_progress: { label: 'Devam ediyor', tone: 'amber', icon: 'play-circle' },
+  completed: { label: 'Tamamlandı', tone: 'success', icon: 'checkmark-circle' },
+  failed: { label: 'Hak doldu', tone: 'danger', icon: 'close-circle' },
 };
 
 export const KATIP_STATUS: Record<KatipStatus, { label: string; tone: Tone; icon: IconName }> = {
@@ -87,14 +103,19 @@ export function AssignmentRow({ a }: { a: Assignment }) {
   const t = L.training(a.trainingId);
   const firm = L.firm(a.firmId);
   const trainer = L.member(a.trainerId);
+  const s = useAppState();
+  const online = a.delivery === 'online';
   const status = ASSIGNMENT_STATUS[a.status];
-  const d = formatDayShort(a.date);
+  // Online eğitimde tarih kutusu son tarihi gösterir
+  const d = formatDayShort(online && a.dueDate ? a.dueDate : a.date);
   const active = a.status === 'in_progress';
+  const done = online ? s.enrollments.filter((e) => e.assignmentId === a.id && e.status === 'completed').length : 0;
   return (
     <Card onPress={() => router.push(`/assignment/${a.id}`)} highlight={active} style={st.assign}>
       <View style={[st.date, active && { backgroundColor: colors.amber, borderColor: colors.amber }]}>
         <Text style={[st.dateDay, active && { color: colors.onAmber }]}>{d.day}</Text>
         <Text style={[st.dateMonth, active && { color: colors.onAmber }]}>{d.month}</Text>
+        {online && <Text style={[st.dateHint, active && { color: colors.onAmber }]}>son</Text>}
       </View>
       <View style={{ flex: 1, gap: 4 }}>
         <Text style={st.assignTitle} numberOfLines={1}>
@@ -104,9 +125,11 @@ export function AssignmentRow({ a }: { a: Assignment }) {
           {firm?.name}
         </Text>
         <View style={st.assignFoot}>
-          <Pill label={status.label} tone={status.tone} icon={status.icon} />
+          {online ? <Pill label="Online" tone="amber" icon="laptop-outline" /> : <Pill label={status.label} tone={status.tone} icon={status.icon} />}
           <Text style={st.assignMeta}>
-            {a.time} · {a.participantIds.length} kişi · {trainer?.name.split(' ')[0]}
+            {online
+              ? `${done}/${a.participantIds.length} tamamladı`
+              : `${a.time} · ${a.participantIds.length} kişi · ${trainer?.name.split(' ')[0]}`}
           </Text>
         </View>
       </View>
@@ -163,6 +186,7 @@ const st = StyleSheet.create({
     justifyContent: 'center',
   },
   dateDay: { color: colors.white, fontSize: 20, fontWeight: font.heavy, lineHeight: 22 },
+  dateHint: { color: colors.textDim, fontSize: 9, fontWeight: font.bold, textTransform: 'uppercase', marginTop: -1 },
   dateMonth: { color: colors.textMuted, fontSize: 11, fontWeight: font.semibold, textTransform: 'uppercase' },
   assignTitle: { color: colors.text, fontSize: 15, fontWeight: font.semibold },
   assignMeta: { color: colors.textDim, fontSize: 12.5 },

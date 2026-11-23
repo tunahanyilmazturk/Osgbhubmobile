@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -30,7 +31,9 @@ export default function TrainingDetail() {
     );
   }
 
-  const assignments = s.assignments.filter((a) => a.trainingId === t.id).sort((a, b) => b.date.localeCompare(a.date));
+  const assignments = s.assignments
+    .filter((a) => a.trainingId === t.id)
+    .sort((a, b) => b.date.localeCompare(a.date));
   const certs = latestCertificates(s.certificates.filter((c) => c.trainingId === t.id));
   const valid = certs.filter((c) => ['valid', 'expiring'].includes(certHealth(c))).length;
 
@@ -54,17 +57,60 @@ export default function TrainingDetail() {
         </View>
       </Card>
 
-      <SectionHeader title="Konu başlıkları" />
+      <SectionHeader
+        title="Online eğitim içeriği"
+        action="Düzenle"
+        onAction={() => router.push(`/content/${t.id}`)}
+      />
       <Card style={{ gap: spacing.md }}>
-        {t.topics.map((topic, i) => (
-          <View key={topic} style={styles.topic}>
-            <View style={styles.topicNo}>
-              <Text style={styles.topicNoText}>{i + 1}</Text>
-            </View>
-            <Text style={styles.topicText}>{topic}</Text>
+        <View style={styles.outline}>
+          <Ionicons name="help-circle-outline" size={18} color={colors.amber} />
+          <Text style={styles.outlineText}>Ön sınav</Text>
+          <Text style={styles.outlineMeta}>{t.content.preTest.questions.length} soru</Text>
+        </View>
+        {t.content.lessons.map((l, i) => (
+          <View key={l.id} style={styles.outline}>
+            <Ionicons
+              name={l.type === 'video' ? 'play-circle-outline' : 'easel-outline'}
+              size={18}
+              color={colors.amber}
+            />
+            <Text style={styles.outlineText} numberOfLines={1}>
+              {i + 1}. {l.title}
+            </Text>
+            <Text style={styles.outlineMeta}>
+              {l.type === 'video' ? 'Video' : `${l.slides?.length ?? 0} slayt`} · {l.minutes} dk
+            </Text>
           </View>
         ))}
+        <View style={styles.outline}>
+          <Ionicons name="trophy-outline" size={18} color={colors.amber} />
+          <Text style={styles.outlineText}>Final sınavı</Text>
+          <Text style={styles.outlineMeta}>
+            {t.content.finalExam.questions.length} soru · geçme %{t.content.passScore}
+          </Text>
+        </View>
+        <Button
+          title="İçeriği düzenle"
+          variant="outline"
+          icon="create-outline"
+          onPress={() => router.push(`/content/${t.id}`)}
+        />
       </Card>
+
+      {t.topics.length > 0 && <SectionHeader title="Konu başlıkları" />}
+      {t.topics.length > 0 && (
+        <Card style={{ gap: spacing.md }}>
+          {t.topics.map((topic, i) => (
+            <View key={topic} style={styles.topic}>
+              <View style={styles.topicNo}>
+                <Text style={styles.topicNoText}>{i + 1}</Text>
+              </View>
+              <Text style={styles.topicText}>{topic}</Text>
+            </View>
+          ))}
+        </Card>
+      )}
 
       <Button
         title="Bu eğitimi ata"
@@ -85,6 +131,9 @@ export default function TrainingDetail() {
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   title: { color: colors.white, fontSize: 17, fontWeight: font.bold },
+  outline: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  outlineText: { flex: 1, color: colors.text, fontSize: 14 },
+  outlineMeta: { color: colors.textDim, fontSize: 12.5 },
   topic: { flexDirection: 'row', gap: spacing.md, alignItems: 'center' },
   topicNo: {
     width: 26,

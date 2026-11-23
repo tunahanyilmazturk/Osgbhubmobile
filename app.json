@@ -27,7 +27,8 @@
       "description": "OSGB Hub — İş sağlığı ve güvenliği yönetim platformu: firmalar, eğitimler, sertifikalar, e-imza ve İSG-KATİP."
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-video"
     ],
     "scheme": "osgbhub",
     "backgroundColor": "#0A0A0B",

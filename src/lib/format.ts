@@ -101,3 +101,15 @@ export function normalize(s: string) {
     .replace(/ö/g, 'o')
     .replace(/ç/g, 'c');
 }
+
+/** E-posta adresi için Türkçe karakterleri sadeleştirir: "Şahin Öz" → "sahin.oz" */
+export function slugify(s: string, sep = '.') {
+  return normalize(s)
+    .replace(/[^a-z0-9]+/g, sep)
+    .replace(new RegExp(`^\\${sep}+|\\${sep}+$`, 'g'), '');
+}
+
+/** Saat bilgisi olan kayıtlarda tarih + saat, yalnızca tarih olanlarda tarih */
+export function formatWhen(value: string) {
+  return value.length > 10 ? formatDateTime(value) : formatDate(value);
+}

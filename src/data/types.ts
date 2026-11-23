@@ -36,6 +36,17 @@ export type TeamMember = {
   phone: string;
 };
 
+/** Katılımcının online eğitim portalı giriş hesabı */
+export type ParticipantAccount = {
+  email: string;
+  /** Demo: düz metin. Gerçek sistemde sunucuda hash'lenmiş tutulur. */
+  password: string;
+  createdAt: string;
+  lastLogin?: string;
+  /** İlk girişte şifre değiştirmesi istensin mi */
+  mustChangePassword?: boolean;
+};
+
 export type Participant = {
   id: string;
   name: string;
@@ -44,6 +55,56 @@ export type Participant = {
   department: string;
   tcMasked: string;
   startDate: string;
+  account?: ParticipantAccount;
+};
+
+/* ---------------- Online eğitim içeriği ---------------- */
+
+export type Slide = {
+  id: string;
+  title: string;
+  /** Her satır bir madde */
+  body: string;
+  /** İsteğe bağlı görsel adresi */
+  imageUrl?: string;
+};
+
+export type Lesson = {
+  id: string;
+  title: string;
+  type: 'slides' | 'video';
+  /** Tahmini süre (dakika) */
+  minutes: number;
+  slides?: Slide[];
+  videoUrl?: string;
+  /** Video dersin altında gösterilen açıklama */
+  description?: string;
+};
+
+export type Question = {
+  id: string;
+  text: string;
+  options: string[];
+  /** Doğru seçeneğin sırası */
+  answer: number;
+};
+
+export type ExamKind = 'pre' | 'final';
+
+export type Exam = {
+  questions: Question[];
+  /** Dakika; 0 = süre sınırı yok */
+  timeLimit: number;
+};
+
+export type TrainingContent = {
+  lessons: Lesson[];
+  preTest: Exam;
+  finalExam: Exam;
+  /** Final sınavı geçme notu (%) */
+  passScore: number;
+  /** Final sınavı en fazla deneme */
+  maxAttempts: number;
 };
 
 export type Training = {
@@ -55,12 +116,20 @@ export type Training = {
   validityMonths: number;
   icon: string;
   topics: string[];
+  description?: string;
+  content: TrainingContent;
 };
 
 export type AssignmentStatus = 'planned' | 'in_progress' | 'completed';
 
+export type DeliveryMode = 'online' | 'classroom';
+
 export type Assignment = {
   id: string;
+  /** Online: katılımcı portalından tamamlanır. Yüz yüze: yoklama ile tamamlanır. */
+  delivery: DeliveryMode;
+  /** Online eğitimler için son tamamlama tarihi */
+  dueDate?: string;
   trainingId: string;
   firmId: string;
   trainerId: string;
@@ -80,6 +149,8 @@ export type Certificate = {
   trainingId: string;
   firmId: string;
   assignmentId?: string;
+  /** Online eğitimden geldiyse ilgili kayıt */
+  enrollmentId?: string;
   trainerId: string;
   issueDate: string;
   expiryDate: string;
@@ -109,4 +180,39 @@ export type KatipLog = {
   at: string;
   text: string;
   tone: 'success' | 'danger' | 'neutral';
+};
+
+/* ---------------- Online eğitim kaydı (katılımcı ilerlemesi) ---------------- */
+
+export type ExamResult = {
+  score: number;
+  /** Her soru için seçilen seçenek (-1 = boş) */
+  answers: number[];
+  /** Sınav anındaki soru kimlikleri (içerik sonradan değişse de inceleme doğru kalsın) */
+  questionIds: string[];
+  at: string;
+  passed?: boolean;
+  seconds: number;
+};
+
+export type EnrollmentStatus = 'not_started' | 'in_progress' | 'completed' | 'failed';
+
+export type Enrollment = {
+  id: string;
+  assignmentId: string;
+  participantId: string;
+  trainingId: string;
+  status: EnrollmentStatus;
+  startedAt?: string;
+  completedAt?: string;
+  preTest?: ExamResult;
+  finalAttempts: ExamResult[];
+  /** Tamamlanan ders kimlikleri */
+  completedLessons: string[];
+  /** Ders bazında kalınan yer: slayt sırası veya video yüzdesi */
+  lessonProgress: Record<string, { slide?: number; watched?: number }>;
+  /** Toplam çalışma süresi (saniye) */
+  seconds: number;
+  /** Yönetici tarafından tanınan ek final hakkı */
+  extraAttempts: number;
 };

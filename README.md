@@ -21,7 +21,16 @@ telefonda alt sekme çubuğu, bilgisayarda (≥1024px) sol kenar menü ve çok s
 | **E-imza** | Onaylı sertifikalar ve belgeler için toplu imza (mobil imza / e-imza kartı + PIN) |
 | **İSG-KATİP** | Sözleşme senkron durumu, hata açıklaması, uygun uzman atama önerisi, işlem günlüğü |
 
-**İş akışı:** Eğitim ata → eğitimi başlat → yoklama ile tamamla → sertifikalar onaya düşer → onayla → e-imza → geçerli sertifika.
+**İş akışı (yüz yüze):** Eğitim ata → eğitimi başlat → yoklama ile tamamla → sertifikalar onaya düşer → onayla → e-imza → geçerli sertifika.
+
+### Online eğitim sistemi
+
+- **Katılımcı hesapları:** katılımcı detayından tek tek ya da Katılımcılar ekranından toplu oluşturulur (e-posta + geçici şifre; ilk girişte değiştirilmesi istenir).
+- **Katılımcı portalı:** giriş sayfasında “Katılımcı” seçilerek girilir → Eğitimlerim, Sertifikalarım, Hesabım.
+- **Akış:** ön sınav → dersler sırayla (slayt dersleri, video dersleri — videonun en az %90'ı gerçekten izlenmeli, ileri sarma sayılmaz) → süreli final sınavı (geçme notu, deneme hakkı).
+- **Final geçilince** sertifika otomatik olarak yöneticinin onay kuyruğuna düşer. Yönetici katılımcının puanlarını, verdiği cevapları ve çalışma süresini inceleyip onaylar/reddeder; hakkı biten katılımcıya ek hak tanıyabilir.
+- **İçerik editörü:** yeni eğitim, ders ekleme/sıralama, slayt (başlık, maddeler, görsel), video adresi, ön/final sınav soruları, geçme notu ve deneme hakkı.
+- **Demo hesaplar:** “Demo yönetici” ve “Demo katılımcı” butonları (katılımcı: `demo.katilimci@osgbhub.com` / `demo1234`).
 
 ## Teknoloji
 
@@ -77,7 +86,8 @@ src/
 
 ## Notlar
 
-- **Demo modu:** tüm veriler `src/data/seed.ts` içinde üretilir ve bellekte tutulur; uygulama kapanınca sıfırlanır.
+- **Demo modu:** başlangıç verisi `src/data/seed.ts` ve `src/data/content.ts` içindedir. Değişiklikler cihazda saklanır (web: localStorage, telefon: AsyncStorage); Profil → “Demo verilerini sıfırla” ile başa dönülür. Farklı cihazlar veriyi paylaşmaz — çok kullanıcılı gerçek kullanım için sunucu gerekir.
+- Katılımcı şifreleri ve sınav cevap anahtarları demo gereği cihazda tutulur; canlıda sunucuda (hash'li şifre, sunucu tarafı puanlama) olmalıdır.
 - Giriş mock'tur; hata durumunu denemek için şifre olarak `hatali123` girin.
 - **E-imza** ve **İSG-KATİP** şu an simülasyondur. Canlıya geçmek için sunucu tarafında
   e-imza sağlayıcısı (mobil imza / NES) entegrasyonu ve OSGB'nin İSG-KATİP web servis yetkisi gerekir.
