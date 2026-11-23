@@ -17,7 +17,7 @@ const FEATURES: { icon: IconName; title: string; text: string }[] = [
 export function LoginBrandPanel() {
   return (
     <LinearGradient
-      colors={['#1C1609', '#110F0B', colors.bg]}
+      colors={[colors.panelA, colors.panelB, colors.bg]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.root}

@@ -11,6 +11,7 @@ export const BREAKPOINTS = {
 } as const;
 
 export const SIDEBAR_WIDTH = 264;
+export const SIDEBAR_COLLAPSED = 76;
 
 export function useLayout() {
   const { width, height } = useWindowDimensions();

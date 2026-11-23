@@ -65,7 +65,7 @@ export function BottomSheet({ visible, onClose, title, subtitle, children }: Pro
 }
 
 const styles = StyleSheet.create({
-  backdrop: { backgroundColor: 'rgba(0,0,0,0.65)' },
+  backdrop: { backgroundColor: colors.backdrop },
   anchor: { flex: 1, justifyContent: 'flex-end' },
   anchorCenter: { justifyContent: 'center', padding: spacing.xxl },
   dialog: {

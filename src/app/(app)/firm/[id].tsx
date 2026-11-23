@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AssignmentRow, HazardPill, KATIP_STATUS } from '@/components/domain';
+import { Button } from '@/components/ui/Button';
 import {
   Avatar,
   Card,
@@ -75,12 +76,15 @@ export default function FirmDetail() {
           title={firm.name}
           subtitle={`${firm.sector} · ${firm.city}`}
           right={
-            <IconButton
-              icon="add"
-              tone="amber"
-              label="Bu firmaya eğitim ata"
-              onPress={() => router.push({ pathname: '/assignment/new', params: { firmId: firm.id } })}
-            />
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <IconButton icon="create-outline" label="Firmayı düzenle" onPress={() => router.push(`/firm/edit/${firm.id}`)} />
+              <IconButton
+                icon="add"
+                tone="amber"
+                label="Bu firmaya eğitim ata"
+                onPress={() => router.push({ pathname: '/assignment/new', params: { firmId: firm.id } })}
+              />
+            </View>
           }
         />
       }
@@ -189,6 +193,13 @@ export default function FirmDetail() {
             title={`Personel (${data.people.length})`}
             action="Tümü"
             onAction={() => router.push({ pathname: '/participants', params: { firmId: firm.id } })}
+          />
+          <Button
+            title="Personel ekle"
+            variant="outline"
+            compact
+            icon="person-add-outline"
+            onPress={() => router.push({ pathname: '/participant/new', params: { firmId: firm.id } })}
           />
           <Card style={{ padding: 0 }}>
             {data.people.slice(0, 5).map((p, i) => (

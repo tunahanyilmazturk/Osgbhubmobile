@@ -32,6 +32,18 @@ telefonda alt sekme çubuğu, bilgisayarda (≥1024px) sol kenar menü ve çok s
 - **İçerik editörü:** yeni eğitim, ders ekleme/sıralama, slayt (başlık, maddeler, görsel), video adresi, ön/final sınav soruları, geçme notu ve deneme hakkı.
 - **Demo hesaplar:** “Demo yönetici” ve “Demo katılımcı” butonları (katılımcı: `demo.katilimci@osgbhub.com` / `demo1234`).
 
+### Liste ve yönetim özellikleri
+
+- **Veri tablosu** (`src/components/ui/DataTable.tsx`) — Firmalar, Katılımcılar, Ekip, Sertifikalar, Eğitim atamaları ve Katalog:
+  liste/kart görünümü geçişi, sütun başlığına tıklayarak sıralama, gelişmiş sayfalama (sayfa boyutu, ilk/son, sayfaya git),
+  toplu seçim (sayfa / tüm kayıtlar) ve onaylı toplu silme + ekrana özel toplu işlemler. Tercihler cihazda hatırlanır.
+- **Yeni / düzenle / sil** formları: firma, katılımcı (isteğe bağlı giriş hesabıyla), ekip üyesi, harici sertifika.
+  Silmede bağlı kayıtlar önceden gösterilir; kullanımdaki ekip üyesi ve eğitim silinmez.
+- **Üst bar** (tablet ve bilgisayar): sayfa yolu, genel arama, “Yeni” menüsü, tema, bildirimler, kullanıcı menüsü.
+- **Daraltılabilir kenar menü**: kenar çizgisindeki butonla simge görünümüne geçer.
+- **Aydınlık / karanlık tema** (web): renkler CSS değişkenleridir (`src/theme/index.ts`), tema anında değişir ve hatırlanır.
+  Telefon uygulamasında şimdilik koyu tema kullanılır.
+
 ## Teknoloji
 
 - **Expo SDK 58** · React Native 0.88 · React 19.3 · TypeScript 6 (strict)

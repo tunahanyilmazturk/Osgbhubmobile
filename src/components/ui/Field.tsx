@@ -15,6 +15,7 @@ export function Field({
       <Text style={styles.label}>{label}</Text>
       <TextInput
         {...rest}
+        accessibilityLabel={rest.accessibilityLabel ?? label}
         multiline={multiline}
         placeholderTextColor={colors.textDim}
         selectionColor={colors.amber}

@@ -2,17 +2,19 @@ import { Stack } from 'expo-router';
 import { View } from 'react-native';
 
 import { Sidebar } from '@/components/Sidebar';
+import { Topbar } from '@/components/Topbar';
 import { useLayout } from '@/lib/responsive';
 import { colors } from '@/theme';
 
 export default function AppLayout() {
-  const { isDesktop } = useLayout();
+  const { isDesktop, isWide } = useLayout();
 
   // Ağaç yapısı her genişlikte aynı kalır; pencere boyutu değişince ekranlar yeniden kurulmaz
   return (
     <View style={{ flex: 1, flexDirection: 'row', backgroundColor: colors.bg }}>
       {isDesktop && <Sidebar />}
       <View style={{ flex: 1 }}>
+        {isWide && <Topbar />}
         <Stack
           screenOptions={{
             headerShown: false,

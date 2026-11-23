@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
-    backgroundColor: 'rgba(10,10,11,0.96)',
+    backgroundColor: colors.barBg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

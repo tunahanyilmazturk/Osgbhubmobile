@@ -113,3 +113,20 @@ export function slugify(s: string, sep = '.') {
 export function formatWhen(value: string) {
   return value.length > 10 ? formatDateTime(value) : formatDate(value);
 }
+
+/** ISO (YYYY-AA-GG) → "GG.AA.YYYY" */
+export function toTrDate(iso?: string) {
+  if (!iso) return '';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}.${m}.${y}`;
+}
+
+/** "GG.AA.YYYY" → ISO; geçersizse null */
+export function parseTrDate(v: string): string | null {
+  const m = v.trim().match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+  if (!m) return null;
+  const [d, mo, y] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const dt = new Date(y, mo - 1, d);
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return toISODate(dt);
+}

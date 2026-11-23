@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: colors.white, fontSize: 12, fontWeight: font.heavy },
+  badgeText: { color: colors.onDanger, fontSize: 12, fontWeight: font.heavy },
   label: { color: colors.white, fontSize: 15, fontWeight: font.bold },
   hint: { color: colors.textDim, fontSize: 12, lineHeight: 16 },
   close: {

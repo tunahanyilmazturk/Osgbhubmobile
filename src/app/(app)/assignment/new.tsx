@@ -393,7 +393,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  optionActive: { borderColor: colors.amber, backgroundColor: '#17140D' },
+  optionActive: { borderColor: colors.amber, backgroundColor: colors.highlight },
   optionTitle: { color: colors.text, fontSize: 14, fontWeight: font.semibold },
   radio: {
     width: 22,

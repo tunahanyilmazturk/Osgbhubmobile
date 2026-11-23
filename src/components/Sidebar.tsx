@@ -6,7 +6,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { Avatar, type IconName } from '@/components/ui/kit';
 import { useAppState } from '@/data/store';
-import { SIDEBAR_WIDTH } from '@/lib/responsive';
+import { SIDEBAR_COLLAPSED, SIDEBAR_WIDTH } from '@/lib/responsive';
+import { usePersistentState } from '@/lib/usePersistentState';
 import { ROLE_LABELS, displayName, useSession } from '@/lib/session';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -26,6 +27,7 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
   const s = useAppState();
   const { user, signOut } = useSession();
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = usePersistentState('sidebar-collapsed', false);
 
   const sections = useMemo<{ title?: string; items: Item[] }[]>(() => {
     if (variant === 'participant') {
@@ -81,9 +83,20 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
   const isActive = (it: Item) => it.match.some((m) => pathname === m || pathname.startsWith(m.endsWith('/') ? m : `${m}/`));
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, collapsed && styles.rootCollapsed]}>
+      {/* Kenar çizgisindeki daraltma butonu */}
+      <Pressable
+        onPress={() => setCollapsed((x) => !x)}
+        style={styles.edgeBtn}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={collapsed ? 'Menüyü genişlet' : 'Menüyü daralt'}
+      >
+        <Ionicons name={collapsed ? 'chevron-forward' : 'chevron-back'} size={14} color={colors.textMuted} />
+      </Pressable>
+
       {/* Marka */}
-      <View style={styles.brand}>
+      <View style={[styles.brand, collapsed && { justifyContent: 'center', paddingHorizontal: 0 }]}>
         <LinearGradient
           colors={[colors.amberLight, colors.amber, colors.amberDeep]}
           start={{ x: 0, y: 0 }}
@@ -92,48 +105,63 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
         >
           <Ionicons name="shield-checkmark" size={20} color={colors.onAmber} />
         </LinearGradient>
-        <View>
-          <Text style={styles.brandName}>
-            OSGB<Text style={{ color: colors.amber }}>Hub</Text>
-          </Text>
-          <Text style={styles.brandCaption}>İSG YÖNETİM PLATFORMU</Text>
-        </View>
+        {!collapsed && (
+          <View>
+            <Text style={styles.brandName}>
+              OSGB<Text style={{ color: colors.amber }}>Hub</Text>
+            </Text>
+            <Text style={styles.brandCaption}>İSG YÖNETİM PLATFORMU</Text>
+          </View>
+        )}
       </View>
 
       {variant === 'staff' && (
         <Pressable
           onPress={() => router.push('/assignment/new')}
-          style={({ pressed }) => [styles.cta, pressed && { opacity: 0.85 }]}
+          style={({ pressed }) => [styles.cta, collapsed && styles.ctaCollapsed, pressed && { opacity: 0.85 }]}
           accessibilityRole="button"
+          accessibilityLabel="Eğitim ata"
         >
-          <Ionicons name="add-circle" size={18} color={colors.onAmber} />
-          <Text style={styles.ctaText}>Eğitim ata</Text>
+          <Ionicons name="add-circle" size={collapsed ? 22 : 18} color={colors.onAmber} />
+          {!collapsed && <Text style={styles.ctaText}>Eğitim ata</Text>}
         </Pressable>
       )}
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ gap: spacing.lg, paddingBottom: spacing.lg }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ gap: collapsed ? spacing.sm : spacing.lg, paddingBottom: spacing.lg }}
+        showsVerticalScrollIndicator={false}
+      >
         {sections.map((sec, i) => (
           <View key={sec.title ?? i} style={{ gap: 2 }}>
-            {sec.title && <Text style={styles.sectionTitle}>{sec.title}</Text>}
+            {sec.title && !collapsed && <Text style={styles.sectionTitle}>{sec.title}</Text>}
+            {sec.title && collapsed && <View style={styles.sectionLine} />}
             {sec.items.map((it) => (
-              <NavItem key={it.label} item={it} active={isActive(it)} />
+              <NavItem key={it.label} item={it} active={isActive(it)} collapsed={collapsed} />
             ))}
           </View>
         ))}
       </ScrollView>
 
       {/* Kullanıcı */}
-      <View style={styles.user}>
-        <Pressable onPress={() => router.push(variant === 'staff' ? '/profile' : '/account')} style={styles.userMain} accessibilityRole="button" accessibilityLabel="Profil">
+      <View style={[styles.user, collapsed && styles.userCollapsed]}>
+        <Pressable
+          onPress={() => router.push(variant === 'staff' ? '/profile' : '/account')}
+          style={styles.userMain}
+          accessibilityRole="button"
+          accessibilityLabel="Profil"
+        >
           <Avatar name={user ? displayName(user.name) : '?'} size={36} tone="amber" />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.userName} numberOfLines={1}>
-              {user ? displayName(user.name) : ''}
-            </Text>
-            <Text style={styles.userRole} numberOfLines={1}>
-              {user ? ROLE_LABELS[user.role] : ''}
-            </Text>
-          </View>
+          {!collapsed && (
+            <View style={{ flex: 1 }}>
+              <Text style={styles.userName} numberOfLines={1}>
+                {user ? displayName(user.name) : ''}
+              </Text>
+              <Text style={styles.userRole} numberOfLines={1}>
+                {user ? ROLE_LABELS[user.role] : ''}
+              </Text>
+            </View>
+          )}
         </Pressable>
         <Pressable onPress={signOut} hitSlop={8} style={styles.logout} accessibilityRole="button" accessibilityLabel="Çıkış yap">
           <Ionicons name="log-out-outline" size={18} color={colors.textMuted} />
@@ -143,21 +171,33 @@ export function Sidebar({ variant = 'staff' }: { variant?: 'staff' | 'participan
   );
 }
 
-function NavItem({ item, active }: { item: Item; active: boolean }) {
+function NavItem({ item, active, collapsed }: { item: Item; active: boolean; collapsed: boolean }) {
   const [hover, setHover] = useState(false);
   return (
     <Pressable
       onPress={() => router.navigate(item.href)}
       onHoverIn={() => setHover(true)}
       onHoverOut={() => setHover(false)}
-      style={[styles.item, hover && !active && styles.itemHover, active && styles.itemActive]}
+      style={[
+        styles.item,
+        collapsed && styles.itemCollapsed,
+        hover && !active && styles.itemHover,
+        active && styles.itemActive,
+      ]}
       accessibilityRole="link"
+      accessibilityLabel={item.badge ? `${item.label}, ${item.badge}` : item.label}
       accessibilityState={{ selected: active }}
     >
-      {active && <View style={styles.activeBar} />}
-      <Ionicons name={active ? item.iconActive : item.icon} size={19} color={active ? colors.amber : colors.textMuted} />
-      <Text style={[styles.itemText, active && { color: colors.white, fontWeight: font.semibold }]}>{item.label}</Text>
-      {!!item.badge && (
+      {active && <View style={[styles.activeBar, collapsed && { left: -spacing.sm }]} />}
+      <Ionicons name={active ? item.iconActive : item.icon} size={collapsed ? 21 : 19} color={active ? colors.amber : colors.textMuted} />
+      {collapsed ? (
+        !!item.badge && (
+          <View style={[styles.dot, { backgroundColor: item.badgeTone === 'danger' ? colors.danger : colors.amber }]} />
+        )
+      ) : (
+        <Text style={[styles.itemText, active && { color: colors.white, fontWeight: font.semibold }]}>{item.label}</Text>
+      )}
+      {!collapsed && !!item.badge && (
         <View style={[styles.badge, { backgroundColor: item.badgeTone === 'danger' ? colors.danger : colors.amber }]}>
           <Text style={[styles.badgeText, item.badgeTone !== 'danger' && { color: colors.onAmber }]}>{item.badge}</Text>
         </View>
@@ -168,6 +208,7 @@ function NavItem({ item, active }: { item: Item; active: boolean }) {
 
 const styles = StyleSheet.create({
   root: {
+    zIndex: 10,
     width: SIDEBAR_WIDTH,
     height: '100%',
     backgroundColor: colors.bgElevated,
@@ -178,6 +219,26 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     gap: spacing.lg,
   },
+  rootCollapsed: { width: SIDEBAR_COLLAPSED, paddingHorizontal: spacing.sm },
+  edgeBtn: {
+    position: 'absolute',
+    top: 64,
+    right: -13,
+    zIndex: 20,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaCollapsed: { width: 44, height: 44, alignSelf: 'center', borderRadius: 14 },
+  sectionLine: { height: 1, backgroundColor: colors.border, marginHorizontal: spacing.sm, marginVertical: spacing.sm },
+  itemCollapsed: { justifyContent: 'center', paddingHorizontal: 0, height: 44 },
+  dot: { position: 'absolute', top: 9, right: 12, width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: colors.bgElevated },
+  userCollapsed: { flexDirection: 'column', paddingVertical: spacing.sm, backgroundColor: 'transparent' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.sm },
   logo: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   brandName: { color: colors.white, fontSize: 18, fontWeight: font.heavy, letterSpacing: -0.4 },
@@ -230,7 +291,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: colors.white, fontSize: 11, fontWeight: font.heavy },
+  badgeText: { color: colors.onDanger, fontSize: 11, fontWeight: font.heavy },
   user: {
     flexDirection: 'row',
     alignItems: 'center',

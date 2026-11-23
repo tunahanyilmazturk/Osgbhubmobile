@@ -55,13 +55,14 @@ type HeaderProps = {
 
 export function ScreenHeader({ title, subtitle, back = true, right, large }: HeaderProps) {
   const insets = useSafeAreaInsets();
-  const { isDesktop, contentMaxWidth } = useLayout();
+  const { isDesktop, isWide, contentMaxWidth } = useLayout();
   const maxWidth = useContext(WidthContext) ?? contentMaxWidth;
   return (
     <View
       style={[
         s.header,
-        { paddingTop: insets.top + (isDesktop ? spacing.xxl : spacing.md) },
+        // Geniş ekranda üstte Topbar olduğu için daha az boşluk
+        { paddingTop: insets.top + (isWide ? spacing.xl : spacing.md) },
         isDesktop && { paddingHorizontal: spacing.xxxl, paddingBottom: spacing.lg },
       ]}
     >
@@ -604,7 +605,7 @@ const s = StyleSheet.create({
     borderColor: colors.border,
   },
   cardHover: { borderColor: colors.borderStrong, backgroundColor: colors.surface },
-  cardHighlight: { borderColor: 'rgba(255,176,32,0.45)', backgroundColor: '#17140D' },
+  cardHighlight: { borderColor: 'rgba(255,176,32,0.45)', backgroundColor: colors.highlight },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   rowTitle: { color: colors.text, fontSize: 15, fontWeight: font.semibold },
   rowSubtitle: { color: colors.textDim, fontSize: 12.5 },

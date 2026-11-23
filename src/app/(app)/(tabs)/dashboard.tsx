@@ -29,6 +29,7 @@ import {
 } from '@/data/store';
 import { DAYS_LONG, MONTHS_LONG, daysUntil, monthLabel, parseDate } from '@/lib/format';
 import { useLayout } from '@/lib/responsive';
+import { useTheme } from '@/lib/theme';
 import { ROLE_LABELS, displayName, useSession } from '@/lib/session';
 import { colors, font, radius, spacing } from '@/theme';
 
@@ -44,7 +45,8 @@ export default function Dashboard() {
   const { user } = useSession();
   const s = useAppState();
   const [refreshing, setRefreshing] = useState(false);
-  const { isDesktop, contentMaxWidth } = useLayout();
+  const { isDesktop, isWide, contentMaxWidth } = useLayout();
+  const { mode, toggle, switchable } = useTheme();
   const bottom = useBottomPadding(true);
 
   const now = new Date();
@@ -199,7 +201,7 @@ export default function Dashboard() {
       contentContainerStyle={[
         styles.content,
         isDesktop && { paddingHorizontal: spacing.xxxl },
-        { paddingTop: insets.top + (isDesktop ? spacing.xxl : spacing.lg), paddingBottom: bottom },
+        { paddingTop: insets.top + (isWide ? spacing.xl : spacing.lg), paddingBottom: bottom },
       ]}
       showsVerticalScrollIndicator={false}
       refreshControl={
@@ -229,27 +231,47 @@ export default function Dashboard() {
               {name} <Text style={styles.role}>· {user ? ROLE_LABELS[user.role] : ''}</Text>
             </Text>
           </View>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.push('/participants')}
-            accessibilityRole="button"
-            accessibilityLabel="Katılımcı ara"
-          >
-            <Ionicons name="search" size={20} color={colors.text} />
-          </Pressable>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.push('/approvals')}
-            accessibilityRole="button"
-            accessibilityLabel={`Bildirimler, ${m.pendingApproval + m.katipIssues} yeni`}
-          >
-            <Ionicons name="notifications-outline" size={20} color={colors.text} />
-            {m.pendingApproval + m.katipIssues > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>{m.pendingApproval + m.katipIssues}</Text>
-              </View>
-            )}
-          </Pressable>
+          {/* Geniş ekranda arama, bildirim ve tema üst barda */}
+          {!isWide && switchable && (
+            <Pressable
+              style={styles.iconBtn}
+              onPress={toggle}
+              accessibilityRole="switch"
+              accessibilityState={{ checked: mode === 'light' }}
+              accessibilityLabel={mode === 'dark' ? 'Aydınlık temaya geç' : 'Karanlık temaya geç'}
+            >
+              <Ionicons
+                name={mode === 'dark' ? 'sunny-outline' : 'moon-outline'}
+                size={20}
+                color={colors.text}
+              />
+            </Pressable>
+          )}
+          {!isWide && (
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => router.push('/participants')}
+              accessibilityRole="button"
+              accessibilityLabel="Katılımcı ara"
+            >
+              <Ionicons name="search" size={20} color={colors.text} />
+            </Pressable>
+          )}
+          {!isWide && (
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => router.push('/approvals')}
+              accessibilityRole="button"
+              accessibilityLabel={`Bildirimler, ${m.pendingApproval + m.katipIssues} yeni`}
+            >
+              <Ionicons name="notifications-outline" size={20} color={colors.text} />
+              {m.pendingApproval + m.katipIssues > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{m.pendingApproval + m.katipIssues}</Text>
+                </View>
+              )}
+            </Pressable>
+          )}
         </View>
         <View style={styles.dateRow}>
           <Ionicons name="calendar-clear-outline" size={14} color={colors.textDim} />
@@ -588,7 +610,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: colors.white, fontSize: 9.5, fontWeight: font.heavy },
+  badgeText: { color: colors.onDanger, fontSize: 9.5, fontWeight: font.heavy },
   dateRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: -spacing.md },
   date: { color: colors.textDim, fontSize: 13, fontWeight: font.medium },
 

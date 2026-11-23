@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  itemOn: { borderColor: colors.amber, backgroundColor: '#17140D' },
+  itemOn: { borderColor: colors.amber, backgroundColor: colors.highlight },
   history: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
   bar: {
     position: 'absolute',
@@ -344,7 +344,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.md,
-    backgroundColor: 'rgba(10,10,11,0.96)',
+    backgroundColor: colors.barBg,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

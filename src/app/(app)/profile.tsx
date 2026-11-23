@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
+import { ThemeSwitchCard } from '@/components/ThemeSwitchCard';
 import { Button } from '@/components/ui/Button';
 import { Avatar, Card, InfoRow, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
 import { actions } from '@/data/store';
@@ -43,18 +44,20 @@ export default function Profile() {
               value={prefs[p.key]}
               onValueChange={(v) => setPrefs((x) => ({ ...x, [p.key]: v }))}
               trackColor={{ true: colors.amber, false: colors.surfaceHigh }}
-              thumbColor={colors.white}
+              thumbColor="#FFFFFF"
               accessibilityLabel={p.label}
             />
           </View>
         ))}
       </Card>
 
+      <ThemeSwitchCard />
+
       <SectionHeader title="Demo verileri" />
       <Card style={{ gap: spacing.md }}>
         <Text style={styles.dim}>
-          Veriler bu cihazda saklanır. Sıfırlarsanız tüm değişiklikler (hesaplar, atamalar, eğitim ilerlemeleri, içerik
-          düzenlemeleri) silinir ve örnek verilere dönülür.
+          Veriler bu cihazda saklanır. Sıfırlarsanız tüm değişiklikler (hesaplar, atamalar, eğitim
+          ilerlemeleri, içerik düzenlemeleri) silinir ve örnek verilere dönülür.
         </Text>
         <Button
           title={confirmReset ? 'Emin misiniz? Tekrar dokunun' : 'Demo verilerini sıfırla'}

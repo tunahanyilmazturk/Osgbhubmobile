@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.border,
   },
-  optionOn: { borderColor: colors.amber, backgroundColor: '#17140D' },
+  optionOn: { borderColor: colors.amber, backgroundColor: colors.highlight },
   letter: {
     width: 32,
     height: 32,

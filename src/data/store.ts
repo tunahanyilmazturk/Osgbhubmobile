@@ -429,6 +429,158 @@ export const actions = {
   newQuestionId: () => newId('q'),
   newSlideId: () => newId('s'),
 
+  /* ---------------- Kayıt oluşturma / düzenleme / silme ---------------- */
+
+  createFirm(input: Omit<Firm, 'id' | 'katip'>) {
+    const year = new Date().getFullYear();
+    const firm: Firm = {
+      ...input,
+      id: newId('f'),
+      katip: {
+        status: 'pending',
+        contractNo: `KTP-${year}-${String(Math.floor(100000 + Math.random() * 899999))}`,
+        lastSync: new Date().toISOString(),
+        message: 'Yeni sözleşme bildirimi gönderilmeyi bekliyor.',
+      },
+    };
+    setState((s) => ({ firms: [...s.firms, firm] }));
+    return firm.id;
+  },
+
+  updateFirm(id: string, patch: Partial<Omit<Firm, 'id' | 'katip'>>) {
+    setState((s) => ({
+      firms: s.firms.map((f) => {
+        if (f.id !== id) return f;
+        const next = { ...f, ...patch };
+        // Ekip ya da tehlike sınıfı değişirse İSG-KATİP'e yeniden bildirilmeli
+        const staffChanged =
+          (patch.specialistId !== undefined && patch.specialistId !== f.specialistId) ||
+          (patch.physicianId !== undefined && patch.physicianId !== f.physicianId) ||
+          ('dspId' in patch && patch.dspId !== f.dspId) ||
+          (patch.hazard !== undefined && patch.hazard !== f.hazard);
+        return staffChanged
+          ? { ...next, katip: { ...f.katip, status: 'pending', message: 'Sözleşme değişikliği bildirilmeyi bekliyor.' } }
+          : next;
+      }),
+    }));
+  },
+
+  /** Firmaları ve bağlı tüm kayıtlarını siler */
+  deleteFirms(ids: string[]) {
+    const set = new Set(ids);
+    setState((s) => {
+      const people = new Set(s.participants.filter((p) => set.has(p.firmId)).map((p) => p.id));
+      const asg = new Set(s.assignments.filter((a) => set.has(a.firmId)).map((a) => a.id));
+      return {
+        firms: s.firms.filter((f) => !set.has(f.id)),
+        participants: s.participants.filter((p) => !people.has(p.id)),
+        assignments: s.assignments.filter((a) => !asg.has(a.id)),
+        enrollments: s.enrollments.filter((e) => !asg.has(e.assignmentId) && !people.has(e.participantId)),
+        certificates: s.certificates.filter((c) => !set.has(c.firmId)),
+        documents: s.documents.filter((d) => !set.has(d.firmId)),
+      };
+    });
+  },
+
+  createParticipant(input: Omit<Participant, 'id' | 'account'>) {
+    const p: Participant = { ...input, id: newId('p') };
+    setState((s) => ({ participants: [...s.participants, p] }));
+    return p.id;
+  },
+
+  updateParticipant(id: string, patch: Partial<Omit<Participant, 'id' | 'account'>>) {
+    setState((s) => ({ participants: s.participants.map((p) => (p.id === id ? { ...p, ...patch } : p)) }));
+  },
+
+  /** Katılımcıları, eğitim kayıtlarını ve sertifikalarını siler */
+  deleteParticipants(ids: string[]) {
+    const set = new Set(ids);
+    setState((s) => ({
+      participants: s.participants.filter((p) => !set.has(p.id)),
+      enrollments: s.enrollments.filter((e) => !set.has(e.participantId)),
+      certificates: s.certificates.filter((c) => !set.has(c.participantId)),
+      assignments: s.assignments
+        .map((a) => ({ ...a, participantIds: a.participantIds.filter((x) => !set.has(x)) }))
+        .filter((a) => a.participantIds.length > 0),
+    }));
+  },
+
+  createMember(input: Omit<TeamMember, 'id'>) {
+    const m: TeamMember = { ...input, id: newId('t') };
+    setState((s) => ({ team: [...s.team, m] }));
+    return m.id;
+  },
+
+  updateMember(id: string, patch: Partial<Omit<TeamMember, 'id'>>) {
+    setState((s) => ({ team: s.team.map((m) => (m.id === id ? { ...m, ...patch } : m)) }));
+  },
+
+  /** Ekip üyelerini siler; firmaya atanmış olanlar silinmez, nedeniyle döner */
+  deleteMembers(ids: string[]) {
+    const blocked: { name: string; reason: string }[] = [];
+    const ok: string[] = [];
+    for (const id of ids) {
+      const m = state.team.find((x) => x.id === id);
+      if (!m) continue;
+      const firms = state.firms.filter((f) => f.specialistId === id || f.physicianId === id || f.dspId === id);
+      if (firms.length) blocked.push({ name: m.name, reason: `${firms.length} firmaya atanmış` });
+      else ok.push(id);
+    }
+    const set = new Set(ok);
+    setState((s) => ({ team: s.team.filter((m) => !set.has(m.id)) }));
+    return { deleted: ok.length, blocked };
+  },
+
+  deleteCertificates(ids: string[]) {
+    const set = new Set(ids);
+    setState((s) => ({ certificates: s.certificates.filter((c) => !set.has(c.id)) }));
+  },
+
+  /** Atamaları ve online eğitim kayıtlarını siler (düzenlenmiş sertifikalar korunur) */
+  deleteAssignments(ids: string[]) {
+    const set = new Set(ids);
+    setState((s) => ({
+      assignments: s.assignments.filter((a) => !set.has(a.id)),
+      enrollments: s.enrollments.filter((e) => !set.has(e.assignmentId)),
+    }));
+  },
+
+  /** Eğitimleri siler; ataması ya da sertifikası olanlar silinmez */
+  deleteTrainings(ids: string[]) {
+    const blocked: { name: string; reason: string }[] = [];
+    const ok: string[] = [];
+    for (const id of ids) {
+      const t = state.trainings.find((x) => x.id === id);
+      if (!t) continue;
+      const a = state.assignments.filter((x) => x.trainingId === id).length;
+      const c = state.certificates.filter((x) => x.trainingId === id).length;
+      if (a || c) blocked.push({ name: t.title, reason: [a && `${a} atama`, c && `${c} sertifika`].filter(Boolean).join(', ') });
+      else ok.push(id);
+    }
+    const set = new Set(ok);
+    setState((s) => ({ trainings: s.trainings.filter((t) => !set.has(t.id)) }));
+    return { deleted: ok.length, blocked };
+  },
+
+  /** Harici (sistem dışında verilmiş) sertifika kaydı: onay ve e-imza sürecinden geçer */
+  createCertificate(input: { participantId: string; trainingId: string; issueDate: string; trainerId: string }) {
+    const p = state.participants.find((x) => x.id === input.participantId)!;
+    const t = state.trainings.find((x) => x.id === input.trainingId)!;
+    const cert: Certificate = {
+      id: newId('c'),
+      no: `OSGB-${input.issueDate.slice(0, 4)}-${nextCertSeq()}`,
+      participantId: p.id,
+      trainingId: t.id,
+      firmId: p.firmId,
+      trainerId: input.trainerId,
+      issueDate: input.issueDate,
+      expiryDate: addMonths(input.issueDate, t.validityMonths),
+      status: 'pending',
+    };
+    setState((s) => ({ certificates: [cert, ...s.certificates] }));
+    return cert.id;
+  },
+
   /** Tüm verileri demo başlangıç haline döndürür */
   resetDemo() {
     const fresh = seedState();

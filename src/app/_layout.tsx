@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { hydrateStore, useHydrated } from '@/data/store';
 import { SessionProvider, useSession } from '@/lib/session';
+import { ThemeProvider, useTheme } from '@/lib/theme';
 import { colors } from '@/theme';
 
 export default function RootLayout() {
@@ -15,12 +16,19 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <SessionProvider>
-        <StatusBar style="light" />
-        <RootNavigator />
-      </SessionProvider>
+      <ThemeProvider>
+        <SessionProvider>
+          <ThemedStatusBar />
+          <RootNavigator />
+        </SessionProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
+}
+
+function ThemedStatusBar() {
+  const { mode } = useTheme();
+  return <StatusBar style={mode === 'dark' ? 'light' : 'dark'} />;
 }
 
 function RootNavigator() {

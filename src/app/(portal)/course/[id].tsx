@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   doneTitle: { color: colors.white, fontSize: 17, fontWeight: font.bold },
   step: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md },
-  stepNext: { backgroundColor: '#17140D' },
+  stepNext: { backgroundColor: colors.highlight },
   border: { borderTopWidth: 1, borderTopColor: colors.border },
   stepIcon: {
     width: 40,

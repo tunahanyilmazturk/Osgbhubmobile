@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { CertificateRow, ENROLLMENT_STATUS } from '@/components/domain';
 import { ParticipantAccountCard } from '@/components/ParticipantAccountCard';
 import { Button } from '@/components/ui/Button';
-import { Avatar, Card, EmptyState, InfoRow, Pill, ProgressBar, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
+import { Avatar, Card, EmptyState, IconButton, InfoRow, Pill, ProgressBar, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
 import { courseState, useAppState, useLookups } from '@/data/store';
 import { formatDate } from '@/lib/format';
 import { colors, font, spacing } from '@/theme';
@@ -33,7 +33,15 @@ export default function ParticipantDetail() {
   const online = s.enrollments.filter((e) => e.participantId === p.id);
 
   return (
-    <Screen header={<ScreenHeader title={p.name} subtitle={firm?.name} />}>
+    <Screen
+      header={
+        <ScreenHeader
+          title={p.name}
+          subtitle={firm?.name}
+          right={<IconButton icon="create-outline" label="Katılımcıyı düzenle" onPress={() => router.push(`/participant/edit/${p.id}`)} />}
+        />
+      }
+    >
       <Card style={{ alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl }}>
         <Avatar name={p.name} size={68} tone="amber" />
         <Text style={styles.name}>{p.name}</Text>

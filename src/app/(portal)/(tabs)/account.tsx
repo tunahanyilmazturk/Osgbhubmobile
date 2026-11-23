@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { ThemeSwitchCard } from '@/components/ThemeSwitchCard';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/TextField';
 import { Avatar, Card, InfoRow, Screen, ScreenHeader, SectionHeader } from '@/components/ui/kit';
@@ -44,7 +45,9 @@ export default function Account() {
         <InfoRow icon="mail-outline" label="E-posta" value={acc?.email ?? '-'} />
         <InfoRow icon="business-outline" label="Firma" value={firm?.name ?? '-'} />
         <InfoRow icon="git-branch-outline" label="Bölüm" value={participant.department} />
-        {acc?.lastLogin && <InfoRow icon="time-outline" label="Son giriş" value={formatDateTime(acc.lastLogin)} />}
+        {acc?.lastLogin && (
+          <InfoRow icon="time-outline" label="Son giriş" value={formatDateTime(acc.lastLogin)} />
+        )}
       </Card>
 
       <SectionHeader title="Şifre değiştir" />
@@ -57,15 +60,39 @@ export default function Account() {
             </Text>
           </View>
         )}
-        <TextField label="Yeni şifre" icon="lock-closed-outline" value={pw} onChangeText={setPw} secureTextEntry secureToggle autoComplete="new-password" />
-        <TextField label="Yeni şifre (tekrar)" icon="lock-closed-outline" value={pw2} onChangeText={setPw2} secureTextEntry secureToggle autoComplete="new-password" />
+        <TextField
+          label="Yeni şifre"
+          icon="lock-closed-outline"
+          value={pw}
+          onChangeText={setPw}
+          secureTextEntry
+          secureToggle
+          autoComplete="new-password"
+        />
+        <TextField
+          label="Yeni şifre (tekrar)"
+          icon="lock-closed-outline"
+          value={pw2}
+          onChangeText={setPw2}
+          secureTextEntry
+          secureToggle
+          autoComplete="new-password"
+        />
         {msg && (
-          <Text style={{ color: msg.ok ? colors.success : colors.danger, fontSize: 13.5, fontWeight: font.semibold }}>
+          <Text
+            style={{
+              color: msg.ok ? colors.success : colors.danger,
+              fontSize: 13.5,
+              fontWeight: font.semibold,
+            }}
+          >
             {msg.text}
           </Text>
         )}
         <Button title="Şifreyi kaydet" icon="checkmark" onPress={save} />
       </Card>
+
+      <ThemeSwitchCard />
 
       <Button title="Çıkış yap" variant="outline" icon="log-out-outline" onPress={signOut} />
     </Screen>

@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     maxWidth: 480,
     alignSelf: 'center',
     borderRadius: radius.xl,
-    backgroundColor: 'rgba(18,18,20,0.97)',
+    backgroundColor: colors.tabBarBg,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: 6,

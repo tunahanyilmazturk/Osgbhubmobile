@@ -16,7 +16,7 @@ export function CertificateCard({ cert: c }: { cert: Certificate }) {
   const trainer = L.member(c.trainerId);
   return (
     <LinearGradient
-      colors={['#1C1810', '#121214', '#0E0E10']}
+      colors={[colors.certA, colors.certB, colors.certC]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.cert}
